@@ -146,3 +146,4 @@ dados_manutencao.json
 # Metadados do Windows
 *:Zone.Identifier
 *_Zone.Identifier
+docker-compose.backup.yml
