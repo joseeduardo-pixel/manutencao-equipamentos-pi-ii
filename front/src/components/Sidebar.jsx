@@ -1,197 +1,299 @@
-import { useState } from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const API_BASE =
-  import.meta.env.VITE_API_URL?.replace('/api/v1', '') ||
-  'http://localhost:3000';
+const NAV_EQUIPAMENTOS = [
+  {
+    to: '/equipamentos',
+    label: 'Listar equipamentos',
+    icon: 'bi-list-ul',
+  },
+];
 
-function formatarUrlAvatar(avatar) {
-  if (!avatar) return null;
-  if (
-    avatar.startsWith('http://') ||
-    avatar.startsWith('https://') ||
-    avatar.startsWith('blob:')
-  ) {
-    return avatar;
-  }
-  return `${API_BASE}${avatar.startsWith('/') ? '' : '/'}${avatar}`;
-}
-
-const NAV_PRINCIPAL = [
-  { to: '/', label: 'Visão geral', end: true },
-  { to: '/equipamentos', label: 'Equipamentos' },
-  { to: '/manutencoes', label: 'Manutenções' },
+const NAV_MANUTENCOES = [
+  {
+    to: '/manutencoes',
+    label: 'Listar manutenções',
+    icon: 'bi-list-ul',
+  },
 ];
 
 const NAV_CADASTROS = [
-  { to: '/predios', label: 'Prédios' },
-  { to: '/locais', label: 'Locais' },
-  { to: '/grupos', label: 'Grupos' },
-  { to: '/categorias', label: 'Categorias' },
-  { to: '/marcas', label: 'Marcas' },
-  { to: '/fornecedores', label: 'Fornecedores' },
+  { to: '/predios', label: 'Prédios', icon: 'bi-buildings' },
+  { to: '/locais', label: 'Locais', icon: 'bi-geo-alt' },
+  { to: '/grupos', label: 'Grupos', icon: 'bi-collection' },
+  { to: '/categorias', label: 'Categorias', icon: 'bi-tags' },
+  { to: '/marcas', label: 'Marcas', icon: 'bi-bookmark' },
+  { to: '/fornecedores', label: 'Fornecedores', icon: 'bi-truck' },
 ];
 
-export default function Sidebar() {
-  const { user, logout } = useAuth();
-  const [erroAvatar, setErroAvatar] = useState(false);
-  const isGestor = user?.role === 'admin' || user?.role === 'root';
+const NAV_ADMINISTRACAO = [
+  {
+    to: '/usuarios',
+    label: 'Usuários',
+    icon: 'bi-people',
+  },
+];
 
-  const avatarUrl = formatarUrlAvatar(user?.avatar);
-  const iniciaisNome = (user?.name || user?.username || 'U')
-    .split(' ')
-    .slice(0, 2)
-    .map((p) => p[0])
-    .join('')
-    .toUpperCase();
+function rotaPertenceAoGrupo(pathname, itens) {
+  return itens.some(
+    (item) =>
+      pathname === item.to ||
+      pathname.startsWith(`${item.to}/`)
+  );
+}
+
+function GrupoExpansivel({
+  titulo,
+  icone,
+  itens,
+  fecharMobile,
+  recolhido,
+}) {
+  const { pathname } = useLocation();
+
+  const grupoAtivo = rotaPertenceAoGrupo(pathname, itens);
+
+  const [aberto, setAberto] = useState(grupoAtivo);
+
+  useEffect(() => {
+    if (grupoAtivo) {
+      setAberto(true);
+    }
+  }, [grupoAtivo, pathname]);
 
   return (
-    <aside className='sidebar'>
-      <div className='sidebar-brand'>
-        <div className='sidebar-brand-title'>Gestão de Patrimônio</div>
-        <div className='sidebar-brand-sub'>PI II · UNIVESP</div>
-      </div>
+    <div className="sidebar-group">
+      <button
+        type="button"
+        className={`sidebar-link sidebar-group-toggle${
+          grupoAtivo ? ' sidebar-group-active' : ''
+        }`}
+        onClick={() => setAberto((anterior) => !anterior)}
+        aria-expanded={aberto}
+        title={titulo}
+        style={{
+          width: '100%',
+          border: 0,
+          textAlign: 'left',
+          cursor: 'pointer',
+          background: 'transparent',
+          color: 'inherit',
+        }}
+      >
+        <i
+          className={`bi ${icone} sidebar-link-icon`}
+          aria-hidden="true"
+        />
 
-      <div className='sidebar-nav' style={{ flex: 1, overflowY: 'auto' }}>
-        <div className='sidebar-section-label'>Principal</div>
-        {NAV_PRINCIPAL.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            className={({ isActive }) =>
-              `sidebar-link${isActive ? ' active' : ''}`
-            }
-          >
-            {item.label}
-          </NavLink>
-        ))}
+        <span className="sidebar-link-text">
+          {titulo}
+        </span>
 
-        <div className='sidebar-section-label'>Cadastros auxiliares</div>
-        {NAV_CADASTROS.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              `sidebar-link${isActive ? ' active' : ''}`
-            }
-          >
-            {item.label}
-          </NavLink>
-        ))}
+        {!recolhido && (
+          <i
+            className={`bi ${
+              aberto ? 'bi-chevron-down' : 'bi-chevron-right'
+            }`}
+            aria-hidden="true"
+            style={{
+              marginLeft: 'auto',
+              fontSize: '10px',
+            }}
+          />
+        )}
+      </button>
 
-        {isGestor && (
-          <>
-            <div className='sidebar-section-label'>Administração</div>
+      {aberto && !recolhido && (
+        <div
+          className="sidebar-submenu"
+          style={{
+            paddingLeft: '14px',
+          }}
+        >
+          {itens.map((item) => (
             <NavLink
-              to='/usuarios'
+              key={item.to}
+              to={item.to}
+              title={item.label}
+              onClick={fecharMobile}
               className={({ isActive }) =>
                 `sidebar-link${isActive ? ' active' : ''}`
               }
             >
-              Usuários
-            </NavLink>
-          </>
-        )}
-      </div>
+              <i
+                className={`bi ${item.icon} sidebar-link-icon`}
+                aria-hidden="true"
+              />
 
-      {/* Rodapé no estilo do mockup */}
-      <div
-        className='sidebar-footer'
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-          padding: '16px',
-          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 10,
-          }}
-        >
-          {/* Informações textuais */}
-          <div style={{ lineHeight: 1.25, overflow: 'hidden' }}>
-            <div
-              style={{
-                fontSize: 13.5,
-                fontWeight: 600,
-                color: '#f3f4f6',
-                whiteSpace: 'nowrap',
-                textOverflow: 'ellipsis',
-                overflow: 'hidden',
-              }}
-            >
-              {user?.name || user?.username || 'Usuário'}
-            </div>
-            <div
-              style={{
-                fontSize: 11.5,
-                color: '#9ca3af',
-                textTransform: 'capitalize',
-                marginTop: 2,
-              }}
-            >
-              {user?.role || 'Membro'}
-            </div>
+              <span className="sidebar-link-text">
+                {item.label}
+              </span>
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function Sidebar({
+  recolhido = false,
+  mobileAberto = false,
+  fecharMobile = () => {},
+}) {
+  const { user, logout } = useAuth();
+
+  const isGestor =
+    user?.role === 'admin' ||
+    user?.role === 'root';
+
+  const nomeUsuario =
+    user?.name ||
+    user?.username ||
+    'Usuário';
+
+  const sair = () => {
+    fecharMobile();
+    logout();
+  };
+
+  return (
+    <aside
+      className={`sidebar ${
+        recolhido ? 'is-collapsed' : ''
+      } ${mobileAberto ? 'mobile-open' : ''}`}
+      aria-label="Menu principal"
+    >
+      <div className="sidebar-brand">
+        <div className="sidebar-brand-icon">
+          <i
+            className="bi bi-gear-wide-connected"
+            aria-hidden="true"
+          />
+        </div>
+
+        <div className="sidebar-brand-info">
+          <div className="sidebar-brand-title">
+            Gestão de Equipamentos e Manutenção
           </div>
 
-          {/* Botão de Engrenagem (Configurações / Perfil) */}
+          <div className="sidebar-brand-sub">
+            PI II · UNIVESP
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="sidebar-mobile-close"
+          onClick={fecharMobile}
+          aria-label="Fechar menu"
+        >
+          <i className="bi bi-x-lg" aria-hidden="true" />
+        </button>
+      </div>
+
+      <nav
+        className="sidebar-nav"
+        aria-label="Navegação do sistema"
+      >
+        <NavLink
+          to="/"
+          end
+          title="Visão geral"
+          onClick={fecharMobile}
+          className={({ isActive }) =>
+            `sidebar-link${isActive ? ' active' : ''}`
+          }
+        >
+          <i
+            className="bi bi-speedometer2 sidebar-link-icon"
+            aria-hidden="true"
+          />
+          <span className="sidebar-link-text">
+            Visão geral
+          </span>
+        </NavLink>
+
+        <GrupoExpansivel
+          titulo="Equipamentos"
+          icone="bi-pc-display"
+          itens={NAV_EQUIPAMENTOS}
+          fecharMobile={fecharMobile}
+          recolhido={recolhido}
+        />
+
+        <GrupoExpansivel
+          titulo="Manutenções"
+          icone="bi-tools"
+          itens={NAV_MANUTENCOES}
+          fecharMobile={fecharMobile}
+          recolhido={recolhido}
+        />
+
+        <GrupoExpansivel
+          titulo="Cadastros auxiliares"
+          icone="bi-folder"
+          itens={NAV_CADASTROS}
+          fecharMobile={fecharMobile}
+          recolhido={recolhido}
+        />
+
+        {isGestor && (
+          <GrupoExpansivel
+            titulo="Administração"
+            icone="bi-shield-lock"
+            itens={NAV_ADMINISTRACAO}
+            fecharMobile={fecharMobile}
+            recolhido={recolhido}
+          />
+        )}
+      </nav>
+
+      <div className="sidebar-footer">
+        <div className="sidebar-user-row">
+          <div className="sidebar-user-avatar">
+            <i
+              className="bi bi-person-circle"
+              aria-hidden="true"
+            />
+          </div>
+
+          <div className="sidebar-user-info">
+            <strong title={nomeUsuario}>
+              {nomeUsuario}
+            </strong>
+
+            <small>
+              {user?.role || 'Membro'}
+            </small>
+          </div>
+
           <Link
-            to='/perfil'
-            title='Configurações do Perfil'
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#9ca3af',
-              cursor: 'pointer',
-              padding: 6,
-              borderRadius: 6,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textDecoration: 'none',
-              transition: 'color 0.15s, background-color 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#f3f4f6';
-              e.currentTarget.style.backgroundColor =
-                'rgba(255, 255, 255, 0.08)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = '#9ca3af';
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
+            to="/perfil"
+            className="sidebar-profile-link"
+            title="Configurações do perfil"
+            aria-label="Configurações do perfil"
+            onClick={fecharMobile}
           >
-            {/* Ícone SVG de Engrenagem */}
-            <svg
-              width='18'
-              height='18'
-              viewBox='0 0 24 24'
-              fill='none'
-              stroke='currentColor'
-              strokeWidth='2'
-              strokeLinecap='round'
-              strokeLinejoin='round'
-            >
-              <path d='M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z' />
-              <circle cx='12' cy='12' r='3' />
-            </svg>
+            <i className="bi bi-gear" aria-hidden="true" />
           </Link>
         </div>
 
-        {/* Botão Sair */}
         <button
-          className='btn-signout'
-          onClick={logout}
-          style={{ width: '100%', marginTop: 4 }}
+          type="button"
+          className="btn-signout"
+          onClick={sair}
+          title="Sair do sistema"
         >
-          Sair
+          <i
+            className="bi bi-box-arrow-right"
+            aria-hidden="true"
+          />
+
+          <span className="sidebar-signout-text">
+            Sair
+          </span>
         </button>
       </div>
     </aside>
