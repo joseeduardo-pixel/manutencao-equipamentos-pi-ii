@@ -15,7 +15,8 @@
     "db:seed": "node prisma/seed.js",
     "db:studio": "npx prisma studio",
     "lint": "eslint . --fix",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "node --test tests/*.test.js"
   },
   "repository": {
     "type": "git",
