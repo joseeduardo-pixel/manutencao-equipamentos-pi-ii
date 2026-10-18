@@ -947,3 +947,202 @@ test('API gerencia marcas no banco de testes', async () => {
     }
   }
 });
+
+test('API gerencia fornecedores no banco de testes', async () => {
+  const databaseUrl = process.env.DATABASE_URL;
+
+  assert.ok(databaseUrl, 'DATABASE_URL nao configurada');
+
+  const url = new URL(databaseUrl);
+
+  assert.equal(
+    decodeURIComponent(url.pathname.slice(1)),
+    EXPECTED_DATABASE,
+    'Banco de dados nao autorizado',
+  );
+
+  assert.notEqual(process.env.NODE_ENV, 'production');
+  assert.ok(process.env.JWT_ACCESS_SECRET);
+
+  const { default: db } = await import('../../src/config/db.js');
+
+  const resultado = await db.$queryRaw`
+    SELECT current_database() AS banco
+  `;
+
+  assert.equal(resultado[0].banco, EXPECTED_DATABASE);
+
+  const { default: app } = await import('../../src/app.js');
+
+  const identificador = `PI2-FORN-${Date.now()}`;
+  const cnpjTeste = String(Date.now()).padStart(14, '0').slice(-14);
+
+  let administrador = null;
+  let usuarioComum = null;
+  let fornecedor = null;
+
+  try {
+    administrador = await db.user.create({
+      data: {
+        name: 'Administrador Teste Fornecedor',
+        username: `admin_forn_${Date.now()}`,
+        email: `admin_forn_${Date.now()}@example.com`,
+        password: 'SenhaTemporariaTeste123!',
+        role: 'admin',
+        status: 'active',
+      },
+    });
+
+    usuarioComum = await db.user.create({
+      data: {
+        name: 'Usuario Comum Teste Fornecedor',
+        username: `comum_forn_${Date.now()}`,
+        email: `comum_forn_${Date.now()}@example.com`,
+        password: 'SenhaTemporariaTeste123!',
+        role: 'user',
+        status: 'active',
+      },
+    });
+
+    const headersAdmin = {
+      authorization: `Bearer ${jwt.sign(
+        { id: administrador.id },
+        process.env.JWT_ACCESS_SECRET,
+        { expiresIn: '15m' },
+      )}`,
+    };
+
+    const headersComum = {
+      authorization: `Bearer ${jwt.sign(
+        { id: usuarioComum.id },
+        process.env.JWT_ACCESS_SECRET,
+        { expiresIn: '15m' },
+      )}`,
+    };
+
+    const cadastro = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auxiliares/fornecedores',
+      headers: headersAdmin,
+      payload: {
+        razao_social: `Fornecedor ${identificador}`,
+        cnpj: cnpjTeste,
+        telefone: '18999990000',
+        email: 'fornecedor-teste@example.com',
+      },
+    });
+
+    assert.equal(cadastro.statusCode, 201, cadastro.body);
+
+    fornecedor = cadastro.json().data;
+
+    assert.ok(fornecedor?.id);
+    assert.equal(fornecedor.cnpj, cnpjTeste);
+
+    const consulta = await app.inject({
+      method: 'GET',
+      url: `/api/v1/auxiliares/fornecedores/${fornecedor.id}`,
+      headers: headersAdmin,
+    });
+
+    assert.equal(consulta.statusCode, 200, consulta.body);
+    assert.equal(consulta.json().data.id, fornecedor.id);
+
+    const novoNome = `Fornecedor Atualizado ${identificador}`;
+
+    const atualizacao = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/auxiliares/fornecedores/${fornecedor.id}`,
+      headers: headersAdmin,
+      payload: {
+        razao_social: novoNome,
+        telefone: '1833334444',
+      },
+    });
+
+    assert.equal(atualizacao.statusCode, 200, atualizacao.body);
+
+    const registro = await db.fornecedor.findUnique({
+      where: { id: fornecedor.id },
+    });
+
+    assert.equal(registro.razao_social, novoNome);
+    assert.equal(registro.telefone, '1833334444');
+    assert.equal(registro.cnpj, cnpjTeste);
+
+    const pesquisa = await app.inject({
+      method: 'GET',
+      url: `/api/v1/auxiliares/fornecedores?search=${encodeURIComponent(identificador)}`,
+      headers: headersAdmin,
+    });
+
+    assert.equal(pesquisa.statusCode, 200, pesquisa.body);
+
+    assert.ok(
+      pesquisa.json().data.some((item) => item.id === fornecedor.id),
+      'Fornecedor nao encontrado na pesquisa',
+    );
+
+    const exclusaoNegada = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/auxiliares/fornecedores/${fornecedor.id}`,
+      headers: headersComum,
+    });
+
+    assert.equal(
+      exclusaoNegada.statusCode,
+      403,
+      exclusaoNegada.body,
+    );
+
+    assert.ok(
+      await db.fornecedor.findUnique({
+        where: { id: fornecedor.id },
+      }),
+      'Fornecedor excluido por usuario sem permissao',
+    );
+
+    const exclusaoAutorizada = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/auxiliares/fornecedores/${fornecedor.id}`,
+      headers: headersAdmin,
+    });
+
+    assert.equal(
+      exclusaoAutorizada.statusCode,
+      200,
+      exclusaoAutorizada.body,
+    );
+
+    assert.equal(
+      await db.fornecedor.findUnique({
+        where: { id: fornecedor.id },
+      }),
+      null,
+    );
+
+    fornecedor = null;
+
+    console.log('CRUD de fornecedores validado.');
+    console.log('CNPJ e persistencia confirmados.');
+    console.log('Pesquisa e permissoes validadas.');
+  } finally {
+    if (fornecedor?.id) {
+      await db.fornecedor.deleteMany({
+        where: { id: fornecedor.id },
+      });
+    }
+
+    if (usuarioComum?.id) {
+      await db.user.deleteMany({
+        where: { id: usuarioComum.id },
+      });
+    }
+
+    if (administrador?.id) {
+      await db.user.deleteMany({
+        where: { id: administrador.id },
+      });
+    }
+  }
+});
