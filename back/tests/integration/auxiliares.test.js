@@ -755,3 +755,195 @@ test('API gerencia categorias vinculadas a grupos', async () => {
     }
   }
 });
+
+test('API gerencia marcas no banco de testes', async () => {
+  const databaseUrl = process.env.DATABASE_URL;
+
+  assert.ok(databaseUrl, 'DATABASE_URL nao configurada');
+
+  const url = new URL(databaseUrl);
+
+  assert.equal(
+    decodeURIComponent(url.pathname.slice(1)),
+    EXPECTED_DATABASE,
+    'Banco de dados nao autorizado',
+  );
+
+  assert.notEqual(process.env.NODE_ENV, 'production');
+  assert.ok(process.env.JWT_ACCESS_SECRET);
+
+  const { default: db } = await import('../../src/config/db.js');
+
+  const resultado = await db.$queryRaw`
+    SELECT current_database() AS banco
+  `;
+
+  assert.equal(resultado[0].banco, EXPECTED_DATABASE);
+
+  const { default: app } = await import('../../src/app.js');
+
+  const identificador = `PI2-MARCA-${Date.now()}`;
+
+  let administrador = null;
+  let usuarioComum = null;
+  let marca = null;
+
+  try {
+    administrador = await db.user.create({
+      data: {
+        name: 'Administrador Teste Marca',
+        username: `admin_marca_${Date.now()}`,
+        email: `admin_marca_${Date.now()}@example.com`,
+        password: 'SenhaTemporariaTeste123!',
+        role: 'admin',
+        status: 'active',
+      },
+    });
+
+    usuarioComum = await db.user.create({
+      data: {
+        name: 'Usuario Comum Teste Marca',
+        username: `comum_marca_${Date.now()}`,
+        email: `comum_marca_${Date.now()}@example.com`,
+        password: 'SenhaTemporariaTeste123!',
+        role: 'user',
+        status: 'active',
+      },
+    });
+
+    const headersAdmin = {
+      authorization: `Bearer ${jwt.sign(
+        { id: administrador.id },
+        process.env.JWT_ACCESS_SECRET,
+        { expiresIn: '15m' },
+      )}`,
+    };
+
+    const headersComum = {
+      authorization: `Bearer ${jwt.sign(
+        { id: usuarioComum.id },
+        process.env.JWT_ACCESS_SECRET,
+        { expiresIn: '15m' },
+      )}`,
+    };
+
+    const cadastro = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auxiliares/marcas',
+      headers: headersAdmin,
+      payload: {
+        marca: `Marca ${identificador}`,
+      },
+    });
+
+    assert.equal(cadastro.statusCode, 201, cadastro.body);
+
+    marca = cadastro.json().data;
+
+    assert.ok(marca?.id);
+    assert.equal(marca.marca, `Marca ${identificador}`);
+
+    const consulta = await app.inject({
+      method: 'GET',
+      url: `/api/v1/auxiliares/marcas/${marca.id}`,
+      headers: headersAdmin,
+    });
+
+    assert.equal(consulta.statusCode, 200, consulta.body);
+    assert.equal(consulta.json().data.id, marca.id);
+
+    const novoNome = `Marca Atualizada ${identificador}`;
+
+    const atualizacao = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/auxiliares/marcas/${marca.id}`,
+      headers: headersAdmin,
+      payload: {
+        marca: novoNome,
+      },
+    });
+
+    assert.equal(atualizacao.statusCode, 200, atualizacao.body);
+
+    const registro = await db.marca.findUnique({
+      where: { id: marca.id },
+    });
+
+    assert.equal(registro.marca, novoNome);
+
+    const pesquisa = await app.inject({
+      method: 'GET',
+      url: `/api/v1/auxiliares/marcas?search=${encodeURIComponent(identificador)}`,
+      headers: headersAdmin,
+    });
+
+    assert.equal(pesquisa.statusCode, 200, pesquisa.body);
+
+    assert.ok(
+      pesquisa.json().data.some((item) => item.id === marca.id),
+      'Marca nao encontrada na pesquisa',
+    );
+
+    const exclusaoNegada = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/auxiliares/marcas/${marca.id}`,
+      headers: headersComum,
+    });
+
+    assert.equal(
+      exclusaoNegada.statusCode,
+      403,
+      exclusaoNegada.body,
+    );
+
+    assert.ok(
+      await db.marca.findUnique({
+        where: { id: marca.id },
+      }),
+      'Marca excluida por usuario sem permissao',
+    );
+
+    const exclusaoAutorizada = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/auxiliares/marcas/${marca.id}`,
+      headers: headersAdmin,
+    });
+
+    assert.equal(
+      exclusaoAutorizada.statusCode,
+      200,
+      exclusaoAutorizada.body,
+    );
+
+    assert.equal(
+      await db.marca.findUnique({
+        where: { id: marca.id },
+      }),
+      null,
+    );
+
+    marca = null;
+
+    console.log('CRUD de marcas validado.');
+    console.log('Pesquisa e permissoes validadas.');
+    console.log('Persistencia no PostgreSQL confirmada.');
+  } finally {
+    if (marca?.id) {
+      await db.marca.deleteMany({
+        where: { id: marca.id },
+      });
+    }
+
+    if (usuarioComum?.id) {
+      await db.user.deleteMany({
+        where: { id: usuarioComum.id },
+      });
+    }
+
+    if (administrador?.id) {
+      await db.user.deleteMany({
+        where: { id: administrador.id },
+      });
+    }
+  }
+});
