@@ -85,7 +85,7 @@ model Local {
   id           Int           @id @default(autoincrement())
   nome_local   String        @db.VarChar(255)
   predio_id    Int
-  predio       Predio        @relation(fields: [predio_id], references: [id], onDelete: Cascade)
+  predio       Predio        @relation(fields: [predio_id], references: [id], onDelete: Restrict)
   equipamentos Equipamento[]
 
   @@map("locais")
@@ -163,7 +163,7 @@ model Manutencao {
   observacoes     String?  @db.Text
 
   fornecedor_id Int
-  fornecedor    Fornecedor @relation(fields: [fornecedor_id], references: [id], onDelete: Cascade)
+  fornecedor    Fornecedor @relation(fields: [fornecedor_id], references: [id], onDelete: Restrict)
 
   itens ItemManutencao[]
 
@@ -177,7 +177,7 @@ model ItemManutencao {
   valor_unitario Decimal @db.Decimal(10, 2)
 
   equipamento_id Int
-  equipamento    Equipamento @relation(fields: [equipamento_id], references: [id], onDelete: Cascade)
+  equipamento    Equipamento @relation(fields: [equipamento_id], references: [id], onDelete: Restrict)
 
   manutencao_id Int
   manutencao    Manutencao @relation(fields: [manutencao_id], references: [id], onDelete: Cascade)
