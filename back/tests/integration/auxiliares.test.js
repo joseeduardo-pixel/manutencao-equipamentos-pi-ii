@@ -541,3 +541,217 @@ test('API gerencia grupos de categorias', async () => {
     }
   }
 });
+
+test('API gerencia categorias vinculadas a grupos', async () => {
+  const databaseUrl = process.env.DATABASE_URL;
+
+  assert.ok(databaseUrl, 'DATABASE_URL nao configurada');
+
+  const url = new URL(databaseUrl);
+  assert.equal(
+    decodeURIComponent(url.pathname.slice(1)),
+    EXPECTED_DATABASE,
+    'Banco de dados nao autorizado',
+  );
+  assert.notEqual(process.env.NODE_ENV, 'production');
+  assert.ok(process.env.JWT_ACCESS_SECRET);
+
+  const { default: db } = await import('../../src/config/db.js');
+
+  const resultado = await db.$queryRaw`
+    SELECT current_database() AS banco
+  `;
+  assert.equal(resultado[0].banco, EXPECTED_DATABASE);
+
+  const { default: app } = await import('../../src/app.js');
+
+  const identificador = `PI2-CATEGORIA-${Date.now()}`;
+  let administrador = null;
+  let usuarioComum = null;
+  let grupo = null;
+  let categoria = null;
+
+  try {
+    administrador = await db.user.create({
+      data: {
+        name: 'Administrador Teste Categoria',
+        username: `admin_cat_${Date.now()}`,
+        email: `admin_cat_${Date.now()}@example.com`,
+        password: 'SenhaTemporariaTeste123!',
+        role: 'admin',
+        status: 'active',
+      },
+    });
+
+    usuarioComum = await db.user.create({
+      data: {
+        name: 'Usuario Comum Teste Categoria',
+        username: `comum_cat_${Date.now()}`,
+        email: `comum_cat_${Date.now()}@example.com`,
+        password: 'SenhaTemporariaTeste123!',
+        role: 'user',
+        status: 'active',
+      },
+    });
+
+    const headersAdmin = {
+      authorization: `Bearer ${jwt.sign(
+        { id: administrador.id },
+        process.env.JWT_ACCESS_SECRET,
+        { expiresIn: '15m' },
+      )}`,
+    };
+
+    const headersComum = {
+      authorization: `Bearer ${jwt.sign(
+        { id: usuarioComum.id },
+        process.env.JWT_ACCESS_SECRET,
+        { expiresIn: '15m' },
+      )}`,
+    };
+
+    grupo = await db.grupo.create({
+      data: {
+        nome_grupo: `Grupo ${identificador}`,
+      },
+    });
+
+    const cadastro = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auxiliares/categorias',
+      headers: headersAdmin,
+      payload: {
+        nome_categoria: `Categoria ${identificador}`,
+        grupo_id: grupo.id,
+      },
+    });
+
+    assert.equal(cadastro.statusCode, 201, cadastro.body);
+
+    categoria = cadastro.json().data;
+    assert.ok(categoria?.id);
+    assert.equal(categoria.grupo_id, grupo.id);
+
+    const consulta = await app.inject({
+      method: 'GET',
+      url: `/api/v1/auxiliares/categorias/${categoria.id}`,
+      headers: headersAdmin,
+    });
+
+    assert.equal(consulta.statusCode, 200, consulta.body);
+    assert.equal(consulta.json().data.id, categoria.id);
+    assert.equal(consulta.json().data.grupo.id, grupo.id);
+
+    const novoNome = `Categoria Atualizada ${identificador}`;
+
+    const atualizacao = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/auxiliares/categorias/${categoria.id}`,
+      headers: headersAdmin,
+      payload: {
+        nome_categoria: novoNome,
+      },
+    });
+
+    assert.equal(atualizacao.statusCode, 200, atualizacao.body);
+
+    const registro = await db.categoria.findUnique({
+      where: { id: categoria.id },
+    });
+
+    assert.equal(registro.nome_categoria, novoNome);
+    assert.equal(registro.grupo_id, grupo.id);
+
+    const filtro = await app.inject({
+      method: 'GET',
+      url: `/api/v1/auxiliares/categorias?grupo_id=${grupo.id}`,
+      headers: headersAdmin,
+    });
+
+    assert.equal(filtro.statusCode, 200, filtro.body);
+    assert.ok(
+      filtro.json().data.some((item) => item.id === categoria.id),
+      'Categoria nao encontrada no filtro por grupo',
+    );
+
+    const pesquisa = await app.inject({
+      method: 'GET',
+      url: `/api/v1/auxiliares/categorias?search=${encodeURIComponent(identificador)}`,
+      headers: headersAdmin,
+    });
+
+    assert.equal(pesquisa.statusCode, 200, pesquisa.body);
+    assert.ok(
+      pesquisa.json().data.some((item) => item.id === categoria.id),
+      'Categoria nao encontrada na pesquisa',
+    );
+
+    const exclusaoNegada = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/auxiliares/categorias/${categoria.id}`,
+      headers: headersComum,
+    });
+
+    assert.equal(
+      exclusaoNegada.statusCode,
+      403,
+      exclusaoNegada.body,
+    );
+
+    assert.ok(
+      await db.categoria.findUnique({
+        where: { id: categoria.id },
+      }),
+      'Categoria excluida por usuario sem permissao',
+    );
+
+    const exclusaoAutorizada = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/auxiliares/categorias/${categoria.id}`,
+      headers: headersAdmin,
+    });
+
+    assert.equal(
+      exclusaoAutorizada.statusCode,
+      200,
+      exclusaoAutorizada.body,
+    );
+
+    assert.equal(
+      await db.categoria.findUnique({
+        where: { id: categoria.id },
+      }),
+      null,
+    );
+
+    categoria = null;
+
+    console.log('CRUD de categorias validado.');
+    console.log('Relacionamento com grupos confirmado.');
+    console.log('Filtros, pesquisa e permissoes validados.');
+  } finally {
+    if (categoria?.id) {
+      await db.categoria.deleteMany({
+        where: { id: categoria.id },
+      });
+    }
+
+    if (grupo?.id) {
+      await db.grupo.deleteMany({
+        where: { id: grupo.id },
+      });
+    }
+
+    if (usuarioComum?.id) {
+      await db.user.deleteMany({
+        where: { id: usuarioComum.id },
+      });
+    }
+
+    if (administrador?.id) {
+      await db.user.deleteMany({
+        where: { id: administrador.id },
+      });
+    }
+  }
+});
