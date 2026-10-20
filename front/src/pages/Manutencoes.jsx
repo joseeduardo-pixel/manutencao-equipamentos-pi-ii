@@ -525,6 +525,7 @@ export default function Manutencoes() {
 
             <div className='field'>
               <label>Itens da manutenção</label>
+
               {form.itens.map((it, index) => (
                 <div
                   key={index}
@@ -532,8 +533,11 @@ export default function Manutencoes() {
                   style={{ padding: 10, marginBottom: 8 }}
                 >
                   <div className='field'>
-                    <label>Descrição do serviço</label>
+                    <label htmlFor={`descricao-${index}`}>
+                      Descrição do serviço
+                    </label>
                     <input
+                      id={`descricao-${index}`}
                       required
                       value={it.descricao}
                       onChange={(e) =>
@@ -541,9 +545,13 @@ export default function Manutencoes() {
                       }
                     />
                   </div>
+
                   <div className='field'>
-                    <label>Equipamento</label>
+                    <label htmlFor={`equipamento-${index}`}>
+                      Equipamento
+                    </label>
                     <select
+                      id={`equipamento-${index}`}
                       required
                       value={it.equipamento_id}
                       onChange={(e) =>
@@ -558,10 +566,14 @@ export default function Manutencoes() {
                       ))}
                     </select>
                   </div>
+
                   <div className='field-row'>
                     <div className='field'>
-                      <label>Quantidade</label>
+                      <label htmlFor={`quantidade-${index}`}>
+                        Quantidade
+                      </label>
                       <input
+                        id={`quantidade-${index}`}
                         type='number'
                         min='0.01'
                         step='0.01'
@@ -572,9 +584,13 @@ export default function Manutencoes() {
                         }
                       />
                     </div>
+
                     <div className='field'>
-                      <label>Valor unitário (R$)</label>
+                      <label htmlFor={`valor-unitario-${index}`}>
+                        Valor unitário (R$)
+                      </label>
                       <input
+                        id={`valor-unitario-${index}`}
                         type='number'
                         min='0'
                         step='0.01'
@@ -586,6 +602,7 @@ export default function Manutencoes() {
                       />
                     </div>
                   </div>
+
                   {form.itens.length > 1 && (
                     <button
                       type='button'
