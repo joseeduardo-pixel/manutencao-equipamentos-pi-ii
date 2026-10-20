@@ -417,8 +417,9 @@ export default function Manutencoes() {
                 Cancelar
               </button>
               <button
+                type='submit'
+                form='form-manutencao'
                 className='btn btn-primary'
-                onClick={salvar}
                 disabled={saving}
               >
                 {saving ? 'Salvando…' : 'Salvar'}
@@ -426,7 +427,7 @@ export default function Manutencoes() {
             </>
           }
         >
-          <form onSubmit={salvar}>
+          <form id='form-manutencao' onSubmit={salvar}>
             {formError && <div className='form-error'>{formError}</div>}
 
             <div className='field-row'>
@@ -562,6 +563,7 @@ export default function Manutencoes() {
                       <label>Quantidade</label>
                       <input
                         type='number'
+                        min='0.01'
                         step='0.01'
                         required
                         value={it.quantidade}
@@ -574,6 +576,7 @@ export default function Manutencoes() {
                       <label>Valor unitário (R$)</label>
                       <input
                         type='number'
+                        min='0'
                         step='0.01'
                         required
                         value={it.valor_unitario}

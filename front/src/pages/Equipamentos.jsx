@@ -473,9 +473,11 @@ export default function Equipamentos() {
               <button className='btn' onClick={() => setModalItem(null)}>
                 Cancelar
               </button>
+
               <button
+                type='submit'
+                form='form-equipamento'
                 className='btn btn-primary'
-                onClick={salvar}
                 disabled={saving}
               >
                 {saving ? 'Salvando…' : 'Salvar'}
@@ -483,7 +485,7 @@ export default function Equipamentos() {
             </>
           }
         >
-          <form onSubmit={salvar}>
+          <form id='form-equipamento' onSubmit={salvar}>
             {formError && <div className='form-error'>{formError}</div>}
 
             <div className='field'>
