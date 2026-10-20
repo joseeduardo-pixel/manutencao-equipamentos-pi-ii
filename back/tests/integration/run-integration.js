@@ -57,7 +57,7 @@ console.log(`Arquivos de teste encontrados: ${testFiles.length}`);
 
 const result = spawnSync(
   process.execPath,
-  ['--test', ...testFiles],
+  ['--test', '--test-concurrency=1', ...testFiles],
   {
     cwd: process.cwd(),
     env: {

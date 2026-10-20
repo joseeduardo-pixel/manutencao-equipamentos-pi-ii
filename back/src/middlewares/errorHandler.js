@@ -152,6 +152,20 @@ const enrichError = (err) => {
   if (err.code === 'P2002') return handlePrismaDuplicateFieldError(err);
   if (err.code === 'P2025') return handlePrismaNotFoundError(err);
   if (err.code === 'P2003') return handleForeignKeyConstraintError(err);
+
+  // Restricoes RESTRICT retornadas diretamente pelo PostgreSQL.
+  if (
+    err.name === 'PrismaClientUnknownRequestError' &&
+    typeof err.message === 'string' &&
+    /PostgresError\s*\{\s*code:\s*"(23001|23503)"/.test(err.message) &&
+    err.message.includes('foreign key constraint')
+  ) {
+    return new AppError(
+      'Nao foi possivel excluir ou alterar este registro porque existem dados vinculados a ele.',
+      400,
+    );
+  }
+
   if (err.code === 'P2000') return handleValueTooLongError(err);
 
   if (err.name === 'PrismaClientValidationError') {
