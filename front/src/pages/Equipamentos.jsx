@@ -572,15 +572,20 @@ export default function Equipamentos() {
               </div>
               <div className='field'>
                 <label htmlFor='situacao'>Situação</label>
-                <input
+                <select
                   id='situacao'
                   required
-                  placeholder='ativo, em manutenção…'
                   value={modalItem.situacao}
                   onChange={(e) =>
                     setModalItem({ ...modalItem, situacao: e.target.value })
                   }
-                />
+                >
+                  <option value=''>Selecione…</option>
+                  <option value='Ativo'>Ativo</option>
+                  <option value='Em Manutenção'>Em Manutenção</option>
+                  <option value='Para Baixa'>Para Baixa</option>
+                  <option value='Baixado'>Baixado</option>
+                </select>
               </div>
             </div>
 
