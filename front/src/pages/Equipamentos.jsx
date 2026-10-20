@@ -529,6 +529,7 @@ export default function Equipamentos() {
                 <input
                   id='capacidade'
                   type='number'
+                  min='0'
                   step='0.01'
                   required
                   value={modalItem.capacidade}
@@ -560,6 +561,7 @@ export default function Equipamentos() {
                 <input
                   id='valor_bem'
                   type='number'
+                  min='0'
                   step='0.01'
                   required
                   value={modalItem.valor_bem}
