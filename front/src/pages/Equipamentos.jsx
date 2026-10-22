@@ -26,7 +26,7 @@ const CAMPOS_VAZIOS = {
   local_id: '',
 };
 
-const LIMIT = 10;
+const LIMIT_PADRAO = 20;
 
 // Filtros da listagem (valores vazios = sem filtro)
 const FILTROS_VAZIOS = {
@@ -47,8 +47,16 @@ const OPCOES_ORDENACAO = [
 ];
 
 // Funções de busca com desempacotamento seguro
-async function fetchEquipamentos(page, search, filtros = {}) {
-  const params = new URLSearchParams({ page, limit: LIMIT });
+async function fetchEquipamentos(
+  page,
+  search,
+  filtros = {},
+  limit = LIMIT_PADRAO,
+) {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
   if (search?.trim()) params.set('search', search.trim());
 
   // Envia só os filtros preenchidos
@@ -82,6 +90,7 @@ export default function Equipamentos() {
   const toast = useToast();
 
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(LIMIT_PADRAO);
   const [termoDigitado, setTermoDigitado] = useState('');
   const [buscaAplicada, setBuscaAplicada] = useState('');
   const [filtros, setFiltros] = useState(FILTROS_VAZIOS);
@@ -103,8 +112,9 @@ export default function Equipamentos() {
     isLoading: loading,
     error: erroQuery,
   } = useQuery({
-    queryKey: ['equipamentos', page, buscaAplicada, filtros],
-    queryFn: () => fetchEquipamentos(page, buscaAplicada, filtros),
+    queryKey: ['equipamentos', page, pageSize, buscaAplicada, filtros],
+    queryFn: () =>
+      fetchEquipamentos(page, buscaAplicada, filtros, pageSize),
     staleTime: 1000 * 30,
   });
 
@@ -364,8 +374,36 @@ export default function Equipamentos() {
       </form>
 
       <div className='panel'>
+
         <div className='panel-header'>
           <h2>{meta?.total ?? items.length} equipamento(s)</h2>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <label htmlFor='equipamentos-page-size'>
+              Registros por página:
+            </label>
+
+            <select
+              id='equipamentos-page-size'
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              aria-label='Quantidade de equipamentos por página'
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
         </div>
 
         {loading && <div className='empty-state'>Carregando…</div>}
