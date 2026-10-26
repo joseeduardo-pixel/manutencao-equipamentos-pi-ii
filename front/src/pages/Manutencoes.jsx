@@ -42,6 +42,37 @@ async function fetchAuxiliar(endpoint) {
   return payload?.items ?? (Array.isArray(payload) ? payload : []);
 }
 
+async function fetchTodosEquipamentos() {
+  const equipamentos = [];
+  let pagina = 1;
+
+  while (true) {
+    const res = await api.get(
+      `/equipamentos?page=${pagina}&limit=100&sortBy=patrimonio&sortOrder=asc`
+    );
+
+    const payload = res?.data !== undefined ? res.data : res;
+
+    const itens = payload?.items ?? (
+      Array.isArray(payload) ? payload : []
+    );
+
+    equipamentos.push(...itens);
+
+    const paginacao = res?.pagination ?? payload?.pagination;
+
+    if (paginacao) {
+      if (!paginacao.hasNextPage) break;
+    } else if (itens.length < 100) {
+      break;
+    }
+
+    pagina += 1;
+  }
+
+  return equipamentos;
+}
+
 export default function Manutencoes() {
   const navigate = useNavigate();
 
@@ -93,7 +124,7 @@ export default function Manutencoes() {
 
   const { data: equipamentos = [] } = useQuery({
     queryKey: ['auxiliares-equipamentos-select'],
-    queryFn: () => fetchAuxiliar('/equipamentos'),
+    queryFn: fetchTodosEquipamentos,
     enabled: modalAberto,
     staleTime: 1000 * 60 * 15,
   });
@@ -150,7 +181,7 @@ export default function Manutencoes() {
       tipo_manutencao: '',
       observacoes: '',
       fornecedor_id: '',
-      itens: [{ ...ITEM_VAZIO }],
+      itens: Array.from({ length: 5 }, () => ({ ...ITEM_VAZIO })),
     });
     setModalAberto(true);
   }
@@ -168,6 +199,13 @@ export default function Manutencoes() {
   function removerItem(index) {
     setForm({ ...form, itens: form.itens.filter((_, i) => i !== index) });
   }
+
+  const totalGeral = (form?.itens ?? []).reduce((total, item) => {
+    const quantidade = Number(item.quantidade) || 0;
+    const valorUnitario = Number(item.valor_unitario) || 0;
+
+    return total + quantidade * valorUnitario;
+  }, 0);
 
   function abrirModalRemover(item) {
     setManutencaoAlvo(item);
@@ -189,11 +227,53 @@ export default function Manutencoes() {
     setSaving(true);
     setFormError('');
     try {
+      const itensPreenchidos = form.itens.filter((item) => {
+        return (
+          item.descricao.trim() !== '' ||
+          String(item.equipamento_id).trim() !== '' ||
+          String(item.valor_unitario).trim() !== '' ||
+          String(item.quantidade).trim() !== '1'
+        );
+      });
+
+      if (itensPreenchidos.length === 0) {
+        throw new Error('Informe pelo menos um item de manutenção.');
+      }
+
+      for (const [index, item] of itensPreenchidos.entries()) {
+        const numeroItem = index + 1;
+        const quantidade = Number(item.quantidade);
+        const valorUnitario = Number(item.valor_unitario);
+
+        if (
+          !item.descricao.trim() ||
+          !String(item.equipamento_id).trim() ||
+          String(item.valor_unitario).trim() === ''
+        ) {
+          throw new Error(
+            `Preencha todos os campos do item ${numeroItem}.`
+          );
+        }
+
+        if (!Number.isFinite(quantidade) || quantidade <= 0) {
+          throw new Error(
+            `A quantidade do item ${numeroItem} deve ser maior que zero.`
+          );
+        }
+
+        if (!Number.isFinite(valorUnitario) || valorUnitario < 0) {
+          throw new Error(
+            `O valor unitário do item ${numeroItem} não pode ser negativo.`
+          );
+        }
+      }
+
       const payload = {
+
         ...form,
         solicitacao: Number(form.solicitacao),
         fornecedor_id: Number(form.fornecedor_id),
-        itens: form.itens.map((it) => ({
+        itens: itensPreenchidos.map((it) => ({
           ...it,
           quantidade: Number(it.quantidade),
           valor_unitario: Number(it.valor_unitario),
@@ -410,6 +490,7 @@ export default function Manutencoes() {
       {modalAberto && (
         <Modal
           title='Nova manutenção'
+          className='modal-manutencao'
           onClose={() => setModalAberto(false)}
           footer={
             <>
@@ -489,25 +570,46 @@ export default function Manutencoes() {
 
             <div className='field-row'>
               <div className='field'>
-                <label htmlFor='forma_aquisicao'>Forma de aquisição</label>
-                <input
+                <label htmlFor='forma_aquisicao'>
+                  Forma de aquisição
+                </label>
+                <select
                   id='forma_aquisicao'
                   value={form.forma_aquisicao}
                   onChange={(e) =>
-                    setForm({ ...form, forma_aquisicao: e.target.value })
+                    setForm({
+                      ...form,
+                      forma_aquisicao: e.target.value,
+                    })
                   }
-                />
+                >
+                  <option value=''>Selecione...</option>
+                  <option value='Adiantamento'>Adiantamento</option>
+                  <option value='Processo'>Processo</option>
+                  <option value='Processo (CEES)'>Processo (CEES)</option>
+                  <option value='CONTRATO'>Contrato</option>
+                  <option value='Terceiros'>Terceiros</option>
+                </select>
               </div>
+
               <div className='field'>
-                <label htmlFor='tipo_manutencao'>Tipo de manutenção</label>
-                <input
+                <label htmlFor='tipo_manutencao'>
+                  Tipo de manutenção
+                </label>
+                <select
                   id='tipo_manutencao'
-                  placeholder='preventiva, corretiva…'
                   value={form.tipo_manutencao}
                   onChange={(e) =>
-                    setForm({ ...form, tipo_manutencao: e.target.value })
+                    setForm({
+                      ...form,
+                      tipo_manutencao: e.target.value,
+                    })
                   }
-                />
+                >
+                  <option value=''>Selecione...</option>
+                  <option value='Preventiva'>Preventiva</option>
+                  <option value='Corretiva'>Corretiva</option>
+                </select>
               </div>
             </div>
 
@@ -523,61 +625,80 @@ export default function Manutencoes() {
               />
             </div>
 
-            <div className='field'>
+            <div className='field itens-manutencao'>
               <label>Itens da manutenção</label>
 
-              {form.itens.map((it, index) => (
-                <div
-                  key={index}
-                  className='panel'
-                  style={{ padding: 10, marginBottom: 8 }}
-                >
-                  <div className='field'>
-                    <label htmlFor={`descricao-${index}`}>
-                      Descrição do serviço
-                    </label>
-                    <input
-                      id={`descricao-${index}`}
-                      required
-                      value={it.descricao}
-                      onChange={(e) =>
-                        atualizarItem(index, 'descricao', e.target.value)
-                      }
-                    />
-                  </div>
+              <div className='itens-manutencao-lista'>
+                {form.itens.map((it, index) => (
+                  <div className='item-manutencao-linha' key={index}>
+                    <div className='field item-patrimonio'>
+                      <label htmlFor={`equipamento-${index}`}>
+                        Patrimônio
+                      </label>
+                      <select
+                        id={`equipamento-${index}`}
+                        required={false}
+                        value={it.equipamento_id}
+                        onChange={(e) =>
+                          atualizarItem(index, 'equipamento_id', e.target.value)
+                        }
+                      >
+                        <option value=''>Selecione...</option>
+                        {equipamentos.map((eq) => {
+                          const descricao =
+                            [eq.tipo, eq.modelo]
+                              .filter(Boolean)
+                              .join(' - ') ||
+                            eq.categoria?.nome_categoria ||
+                            'Equipamento sem descrição';
 
-                  <div className='field'>
-                    <label htmlFor={`equipamento-${index}`}>
-                      Equipamento
-                    </label>
-                    <select
-                      id={`equipamento-${index}`}
-                      required
-                      value={it.equipamento_id}
-                      onChange={(e) =>
-                        atualizarItem(index, 'equipamento_id', e.target.value)
-                      }
-                    >
-                      <option value=''>Selecione…</option>
-                      {equipamentos.map((eq) => (
-                        <option key={eq.id} value={eq.id}>
-                          {eq.patrimonio} {eq.tipo ? `· ${eq.tipo}` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                          const predio =
+                            eq.local?.predio?.nome_predio || '';
 
-                  <div className='field-row'>
-                    <div className='field'>
+                          const local =
+                            eq.local?.nome_local || '';
+
+                          const localizacao =
+                            [predio, local]
+                              .filter(Boolean)
+                              .join(' / ') ||
+                            'Local não informado';
+
+                          return (
+                            <option key={eq.id} value={eq.id}>
+                              {eq.patrimonio} - {descricao} - {localizacao}
+                            </option>
+                          );
+                        })}
+
+                      </select>
+                    </div>
+
+                    <div className='field item-descricao'>
+                      <label htmlFor={`descricao-${index}`}>
+                        Descrição do serviço
+                      </label>
+                      <textarea
+                        id={`descricao-${index}`}
+                        rows={2}
+                        required={false}
+                        value={it.descricao}
+                        onChange={(e) =>
+                          atualizarItem(index, 'descricao', e.target.value)
+                        }
+                      />
+                    </div>
+
+                    <div className='field item-quantidade'>
                       <label htmlFor={`quantidade-${index}`}>
-                        Quantidade
+                        Qtd.
                       </label>
                       <input
                         id={`quantidade-${index}`}
                         type='number'
                         min='0.01'
                         step='0.01'
-                        required
+                        required={false}
                         value={it.quantidade}
                         onChange={(e) =>
                           atualizarItem(index, 'quantidade', e.target.value)
@@ -585,42 +706,72 @@ export default function Manutencoes() {
                       />
                     </div>
 
-                    <div className='field'>
+                    <div className='field item-valor'>
                       <label htmlFor={`valor-unitario-${index}`}>
-                        Valor unitário (R$)
+                        Valor unit. (R$)
                       </label>
                       <input
                         id={`valor-unitario-${index}`}
                         type='number'
                         min='0'
                         step='0.01'
-                        required
+                        required={false}
                         value={it.valor_unitario}
                         onChange={(e) =>
                           atualizarItem(index, 'valor_unitario', e.target.value)
                         }
                       />
                     </div>
-                  </div>
 
-                  {form.itens.length > 1 && (
-                    <button
-                      type='button'
-                      className='btn btn-sm btn-danger'
-                      onClick={() => removerItem(index)}
-                    >
-                      Remover item
-                    </button>
-                  )}
+                    <div className='item-subtotal'>
+                      <span>Subtotal</span>
+                      <strong>
+                        {(
+                          (Number(it.quantidade) || 0) *
+                          (Number(it.valor_unitario) || 0)
+                        ).toLocaleString('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        })}
+                      </strong>
+                    </div>
+
+                    <div className='item-acao'>
+                      {form.itens.length > 1 && (
+                        <button
+                          type='button'
+                          className='btn btn-sm btn-danger'
+                          onClick={() => removerItem(index)}
+                          title={`Remover item ${index + 1}`}
+                          aria-label={`Remover item ${index + 1}`}
+                        >
+                          <i className='bi bi-trash'></i>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className='itens-manutencao-rodape'>
+                <button
+                  type='button'
+                  className='btn btn-sm'
+                  onClick={adicionarItem}
+                >
+                  + Adicionar item
+                </button>
+
+                <div className='itens-manutencao-total'>
+                  Total geral:{' '}
+                  <strong>
+                    {totalGeral.toLocaleString('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                    })}
+                  </strong>
                 </div>
-              ))}
-              <button
-                type='button'
-                className='btn btn-sm'
-                onClick={adicionarItem}
-              >
-                + Adicionar item
-              </button>
+              </div>
             </div>
           </form>
         </Modal>
