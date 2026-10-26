@@ -6,6 +6,7 @@ import { entidadesConfig } from './config/entidades';
 
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Relatorios from './pages/Relatorios';
 import Equipamentos from './pages/Equipamentos';
 import Manutencoes from './pages/Manutencoes';
 import Usuarios from './pages/Usuarios';
@@ -41,6 +42,16 @@ export default function App() {
           <ToastProvider>
             <Routes>
               <Route path='/login' element={<Login />} />
+
+              <Route
+                path='/relatorios'
+                element={
+                  <ProtectedRoute>
+                    <Relatorios />
+                  </ProtectedRoute>
+                }
+              />
+
 
               <Route
                 path='/'

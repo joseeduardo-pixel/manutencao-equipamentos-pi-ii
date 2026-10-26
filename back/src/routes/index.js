@@ -1,3 +1,4 @@
+import relatorioRoutes from './relatorioRoutes.js';
 import authRoutes from './authRoutes.js';
 import auxiliaresRoutes from './auxiliaresRoutes.js';
 import equipamentoRoutes from './equipamentoRoutes.js';
@@ -14,4 +15,5 @@ export default async function apiRoutes(fastify, options) {
   fastify.register(manutencaoRoutes, { prefix: '/manutencoes' });
   fastify.register(equipamentoRoutes, { prefix: '/equipamentos' });
   fastify.register(dashboardRoutes, { prefix: '/dashboard' });
+  fastify.register(relatorioRoutes, { prefix: '/relatorios' });
 }

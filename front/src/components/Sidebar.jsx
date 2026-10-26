@@ -215,6 +215,23 @@ export default function Sidebar({
           </span>
         </NavLink>
 
+        <NavLink
+          to="/relatorios"
+          title="Relatórios"
+          onClick={fecharMobile}
+          className={({ isActive }) =>
+            `sidebar-link${isActive ? ' active' : ''}`
+          }
+        >
+          <i
+            className="bi bi-file-earmark-bar-graph sidebar-link-icon"
+            aria-hidden="true"
+          />
+          <span className="sidebar-link-text">
+            Relatórios
+          </span>
+        </NavLink>
+
         <GrupoExpansivel
           titulo="Equipamentos"
           icone="bi-pc-display"
