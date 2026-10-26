@@ -3,6 +3,7 @@ import { protect, restrictTo } from '../middlewares/auth.js';
 import {
   createManutencaoSchema,
   updateManutencaoSchema,
+  reabrirManutencaoSchema,
   createItemManutencaoSchema,
   idParamSchema,
   itemManutencaoParamsSchema,
@@ -39,6 +40,20 @@ export default async function manutencaoRoutes(fastify, options) {
       preHandler: [restrictTo('admin', 'root')],
     },
     manutencaoController.deleteManutencao,
+  );
+
+  // --- Reabertura administrativa com auditoria ---
+
+  fastify.patch(
+    '/:id/reabrir',
+    {
+      schema: {
+        params: idParamSchema,
+        body: reabrirManutencaoSchema,
+      },
+      preHandler: [restrictTo('admin', 'root')],
+    },
+    manutencaoController.reabrirManutencao,
   );
 
   // --- Rotas de Itens (Detail) ---

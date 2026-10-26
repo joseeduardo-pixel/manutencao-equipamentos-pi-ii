@@ -327,3 +327,19 @@ export const updateItemManutencaoSchema = Type.Partial(
     ],
   },
 );
+
+// --- Reabertura administrativa de manutencao ---
+
+export const reabrirManutencaoSchema = Type.Object(
+  {
+    justificativa: Type.String({
+      minLength: 10,
+      maxLength: 2000,
+      pattern: '.*\\S.*',
+      description: 'Justificativa obrigatoria para reabertura da manutencao.',
+    }),
+  },
+  {
+    additionalProperties: false,
+  },
+);

@@ -121,3 +121,23 @@ export const removeItem = async (request, reply) => {
     message: 'Item removido da manutenção com sucesso.',
   });
 };
+
+// --- Reabertura administrativa de manutencao ---
+
+export const reabrirManutencao = async (request, reply) => {
+  const { id } = request.params;
+  const { justificativa } = request.body;
+
+  const resultado = await manutencaoService.reabrirManutencao(
+    Number(id),
+    request.user.id,
+    justificativa,
+  );
+
+  return resfc({
+    reply,
+    code: 200,
+    data: resultado,
+    message: 'Manutencao reaberta com sucesso. Auditoria registrada.',
+  });
+};

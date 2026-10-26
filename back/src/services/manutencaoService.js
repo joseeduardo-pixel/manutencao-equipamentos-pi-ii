@@ -2,6 +2,31 @@ import db from '../config/db.js';
 import AppError from '../utils/appError.js';
 import { paginate } from '../utils/paginate.js';
 
+const verificarManutencaoAberta = async (manutencaoId, cliente = db) => {
+  const id = Number(manutencaoId);
+
+  const manutencao = await cliente.manutencao.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      finalizado: true,
+    },
+  });
+
+  if (!manutencao) {
+    throw new AppError('Manutenção não encontrada.', 404);
+  }
+
+  if (manutencao.finalizado) {
+    throw new AppError(
+      'Esta manutenção está finalizada. Solicite a reabertura autorizada para realizar alterações.',
+      409,
+    );
+  }
+
+  return manutencao;
+};
+
 export const listManutencoes = async (query = {}) => {
   const {
     page,
@@ -161,9 +186,14 @@ export const createManutencao = async (dataPayload) => {
 };
 
 export const updateManutencao = async (id, dataPayload) => {
-  await db.manutencao.findUniqueOrThrow({
-    where: { id: Number(id) },
-  });
+  if (dataPayload.finalizado === false) {
+    throw new AppError(
+      'A reabertura de manutenção exige autorização e justificativa.',
+      409,
+    );
+  }
+
+  await verificarManutencaoAberta(id);
 
   const updateData = {};
   if (dataPayload.data !== undefined)
@@ -193,9 +223,7 @@ export const updateManutencao = async (id, dataPayload) => {
 };
 
 export const deleteManutencao = async (id) => {
-  await db.manutencao.findUniqueOrThrow({
-    where: { id: Number(id) },
-  });
+  await verificarManutencaoAberta(id);
 
   return await db.manutencao.delete({
     where: { id: Number(id) },
@@ -205,9 +233,7 @@ export const deleteManutencao = async (id) => {
 // --- Operações Diretas de Itens de Manutenção ---
 
 export const addItemManutencao = async (manutencaoId, itemData) => {
-  await db.manutencao.findUniqueOrThrow({
-    where: { id: Number(manutencaoId) },
-  });
+  await verificarManutencaoAberta(manutencaoId);
 
   return await db.itemManutencao.create({
     data: {
@@ -233,6 +259,8 @@ export const updateItemManutencao = async (
   itemId,
   dataPayload,
 ) => {
+  await verificarManutencaoAberta(manutencaoId);
+
   const itemExistente = await db.itemManutencao.findFirst({
     where: {
       id: Number(itemId),
@@ -272,6 +300,8 @@ export const updateItemManutencao = async (
 };
 
 export const deleteItemManutencao = async (manutencaoId, itemId) => {
+  await verificarManutencaoAberta(manutencaoId);
+
   const itemExistente = await db.itemManutencao.findFirst({
     where: {
       id: Number(itemId),
@@ -288,5 +318,85 @@ export const deleteItemManutencao = async (manutencaoId, itemId) => {
 
   return await db.itemManutencao.delete({
     where: { id: Number(itemId) },
+  });
+};
+
+// --- Reabertura administrativa de manutencao ---
+
+export const reabrirManutencao = async (
+  id,
+  usuarioId,
+  justificativa,
+) => {
+  const manutencaoId = Number(id);
+
+  if (!Number.isSafeInteger(manutencaoId) || manutencaoId < 1) {
+    throw new AppError('Identificador da manutencao invalido.', 400);
+  }
+
+  if (
+    typeof usuarioId !== 'string' ||
+    usuarioId.trim().length === 0
+  ) {
+    throw new AppError('Usuario responsavel nao identificado.', 401);
+  }
+
+  if (
+    typeof justificativa !== 'string' ||
+    justificativa.trim().length < 10 ||
+    justificativa.trim().length > 2000
+  ) {
+    throw new AppError(
+      'A justificativa deve conter entre 10 e 2000 caracteres.',
+      400,
+    );
+  }
+
+  return await db.$transaction(async (tx) => {
+    const atualizacao = await tx.manutencao.updateMany({
+      where: {
+        id: manutencaoId,
+        finalizado: true,
+      },
+      data: {
+        finalizado: false,
+      },
+    });
+
+    if (atualizacao.count !== 1) {
+      const manutencao = await tx.manutencao.findUnique({
+        where: { id: manutencaoId },
+        select: { id: true, finalizado: true },
+      });
+
+      if (!manutencao) {
+        throw new AppError('Manutencao nao encontrada.', 404);
+      }
+
+      throw new AppError(
+        'Esta manutencao ja esta aberta e nao pode ser reaberta novamente.',
+        409,
+      );
+    }
+
+    const auditoria = await tx.auditoriaReaberturaManutencao.create({
+      data: {
+        manutencao_id: manutencaoId,
+        usuario_id: usuarioId,
+        justificativa: justificativa.trim(),
+      },
+    });
+
+    const manutencao = await tx.manutencao.findUnique({
+      where: { id: manutencaoId },
+      include: {
+        fornecedor: true,
+      },
+    });
+
+    return {
+      manutencao,
+      auditoria,
+    };
   });
 };

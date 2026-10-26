@@ -63,6 +63,7 @@ model User {
   updatedAt         DateTime  @updatedAt
 
   refreshTokens RefreshToken[]
+  auditoriasReabertura AuditoriaReaberturaManutencao[]
 
   @@index([id, username, email])
   @@map("users")
@@ -166,6 +167,7 @@ model Manutencao {
   fornecedor    Fornecedor @relation(fields: [fornecedor_id], references: [id], onDelete: Restrict)
 
   itens ItemManutencao[]
+  auditoriasReabertura AuditoriaReaberturaManutencao[]
 
   @@map("manutencoes")
 }
@@ -183,4 +185,19 @@ model ItemManutencao {
   manutencao    Manutencao @relation(fields: [manutencao_id], references: [id], onDelete: Cascade)
 
   @@map("itens_manutencao")
+}
+
+model AuditoriaReaberturaManutencao {
+  id              Int      @id @default(autoincrement())
+  manutencao_id   Int
+  usuario_id      String
+  justificativa   String   @db.Text
+  data_reabertura DateTime @default(now())
+
+  manutencao Manutencao @relation(fields: [manutencao_id], references: [id], onDelete: Restrict)
+  usuario   User      @relation(fields: [usuario_id], references: [id], onDelete: Restrict)
+
+  @@index([manutencao_id])
+  @@index([usuario_id])
+  @@map("auditoria_reabertura_manutencao")
 }

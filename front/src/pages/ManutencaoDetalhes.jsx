@@ -28,6 +28,12 @@ export default function ManutencaoDetalhes() {
   const { user } = useAuth();
   const podeExcluir = user?.role === 'admin' || user?.role === 'root';
 
+  // Controle da reabertura administrativa.
+  const podeReabrir = user?.role === 'admin' || user?.role === 'root';
+
+  const [modalReaberturaAberto, setModalReaberturaAberto] = useState(false);
+  const [justificativaReabertura, setJustificativaReabertura] = useState('');
+
   const [modalEditarManutencaoAberto, setModalEditarManutencaoAberto] =
     useState(false);
   const [formManutencao, setFormManutencao] = useState(null);
@@ -105,9 +111,42 @@ export default function ManutencaoDetalhes() {
   }, [manutencao]);
 
   function abrirModalEdicaoManutencao() {
+    if (manutencao?.finalizado) {
+      toast.error('Reabra a manutenção antes de editar.');
+      return;
+    }
+
     sincronizarFormulario(manutencao);
     setModalEditarManutencaoAberto(true);
   }
+
+  // Mutation: Reabrir manutenção com justificativa e auditoria.
+  const reabrirManutencaoMutation = useMutation({
+    mutationFn: async (justificativa) => {
+      return await api.patch(`/manutencoes/${id}/reabrir`, {
+        justificativa,
+      });
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['manutencao', id] });
+      queryClient.invalidateQueries({ queryKey: ['manutencoes'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+
+      setModalReaberturaAberto(false);
+      setJustificativaReabertura('');
+
+      toast.success(
+        res?.message || 'Manutenção reaberta com sucesso!'
+      );
+    },
+    onError: (err) => {
+      toast.error(
+        err.payload?.message ||
+          err.message ||
+          'Erro ao reabrir manutenção.'
+      );
+    },
+  });
 
   // Mutation: Salvar dados da manutenção
   const salvarManutencaoMutation = useMutation({
@@ -116,7 +155,9 @@ export default function ManutencaoDetalhes() {
         data: dados.data ? dados.data.slice(0, 10) : undefined,
         nota_fiscal: dados.nota_fiscal,
         solicitacao: Number(dados.solicitacao),
-        finalizado: Boolean(dados.finalizado),
+        ...(dados.finalizado === true && manutencao?.finalizado === false
+          ? { finalizado: true }
+          : {}),
         forma_aquisicao: dados.forma_aquisicao || null,
         tipo_manutencao: dados.tipo_manutencao || null,
         observacoes: dados.observacoes || null,
@@ -202,12 +243,22 @@ export default function ManutencaoDetalhes() {
   });
 
   function abrirNovoItem() {
+    if (manutencao?.finalizado) {
+      toast.error('Não é permitido adicionar itens a uma manutenção finalizada.');
+      return;
+    }
+
     setItemEmEdicao(null);
     setFormItem(ITEM_PADRAO);
     setModalItemAberto(true);
   }
 
   function abrirEdicaoItem(item) {
+    if (manutencao?.finalizado) {
+      toast.error('Reabra a manutenção antes de editar itens.');
+      return;
+    }
+
     setItemEmEdicao(item);
     setFormItem({
       descricao: item.descricao ?? '',
@@ -226,6 +277,12 @@ export default function ManutencaoDetalhes() {
 
   function handleSubmitItem(e) {
     e.preventDefault();
+
+    if (manutencao?.finalizado) {
+      toast.error('Esta manutenção está finalizada.');
+      return;
+    }
+
     salvarItemMutation.mutate({ itemId: itemEmEdicao?.id, dados: formItem });
   }
 
@@ -240,6 +297,11 @@ export default function ManutencaoDetalhes() {
   }
 
   function confirmarRemocaoItem() {
+    if (manutencao?.finalizado) {
+      toast.error('Não é permitido excluir itens de manutenção finalizada.');
+      return;
+    }
+
     if (!itemAlvoRemocao) return;
     removerItemMutation.mutate(itemAlvoRemocao.id);
   }
@@ -287,12 +349,28 @@ export default function ManutencaoDetalhes() {
           <button className='btn' onClick={() => navigate('/manutencoes')}>
             ← Voltar para listagem
           </button>
-          <button
-            className='btn btn-primary'
-            onClick={abrirModalEdicaoManutencao}
-          >
-            Editar dados da manutenção
-          </button>
+          {podeReabrir && manutencao.finalizado && (
+            <button
+              type='button'
+              className='btn btn-warning'
+              onClick={() => {
+                setJustificativaReabertura('');
+                setModalReaberturaAberto(true);
+              }}
+            >
+              Reabrir manutenção
+            </button>
+          )}
+
+          {!manutencao.finalizado && (
+            <button
+              type='button'
+              className='btn btn-primary'
+              onClick={abrirModalEdicaoManutencao}
+            >
+              Editar dados da manutenção
+            </button>
+          )}
         </div>
       }
     >
@@ -457,9 +535,15 @@ export default function ManutencaoDetalhes() {
               </span>
             </div>
 
-            <button className='btn btn-primary' onClick={abrirNovoItem}>
-              + Adicionar Item
-            </button>
+            {!manutencao.finalizado && (
+              <button
+                type='button'
+                className='btn btn-primary'
+                onClick={abrirNovoItem}
+              >
+                + Adicionar Item
+              </button>
+            )}
           </div>
         </div>
 
@@ -523,14 +607,16 @@ export default function ManutencaoDetalhes() {
                     </td>
                     <td>
                       <div className='table-actions'>
-                        <button
-                          type='button'
-                          className='btn btn-sm'
-                          onClick={() => abrirEdicaoItem(it)}
-                        >
-                          Editar
-                        </button>
-                        {podeExcluir && (
+                        {!manutencao.finalizado && (
+                          <button
+                            type='button'
+                            className='btn btn-sm'
+                            onClick={() => abrirEdicaoItem(it)}
+                          >
+                            Editar
+                          </button>
+                        )}
+                        {podeExcluir && !manutencao.finalizado && (
                           <button
                             type='button'
                             className='btn btn-sm btn-danger'
@@ -549,6 +635,84 @@ export default function ManutencaoDetalhes() {
         )}
       </div>
 
+      {/* Modal: Reabertura administrativa */}
+      {modalReaberturaAberto && (
+        <Modal
+          title={`Reabrir Manutenção #${manutencao.solicitacao || id}`}
+          onClose={() => setModalReaberturaAberto(false)}
+        >
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+
+              const justificativa = justificativaReabertura.trim();
+
+              if (justificativa.length < 10 || justificativa.length > 2000) {
+                toast.error(
+                  'A justificativa deve conter entre 10 e 2000 caracteres.'
+                );
+                return;
+              }
+
+              reabrirManutencaoMutation.mutate(justificativa);
+            }}
+          >
+            <div className='form-group'>
+              <label htmlFor='justificativa-reabertura'>
+                Justificativa da reabertura *
+              </label>
+
+              <textarea
+                id='justificativa-reabertura'
+                className='form-control'
+                rows={5}
+                maxLength={2000}
+                minLength={10}
+                required
+                value={justificativaReabertura}
+                onChange={(e) =>
+                  setJustificativaReabertura(e.target.value)
+                }
+                placeholder='Informe o motivo da reabertura da manutenção.'
+              />
+
+              <small>
+                {justificativaReabertura.trim().length}/2000 caracteres
+              </small>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: 10,
+                marginTop: 20,
+              }}
+            >
+              <button
+                type='button'
+                className='btn'
+                onClick={() => setModalReaberturaAberto(false)}
+              >
+                Cancelar
+              </button>
+
+              <button
+                type='submit'
+                className='btn btn-warning'
+                disabled={
+                  reabrirManutencaoMutation.isPending ||
+                  justificativaReabertura.trim().length < 10 ||
+                  justificativaReabertura.trim().length > 2000
+                }
+              >
+                Confirmar reabertura
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
       {/* Modal: Editar Dados da Manutenção */}
       {modalEditarManutencaoAberto && formManutencao && (
         <Modal
@@ -558,6 +722,11 @@ export default function ManutencaoDetalhes() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
+              if (manutencao?.finalizado) {
+                toast.error('Reabra a manutenção antes de salvar alterações.');
+                return;
+              }
+
               salvarManutencaoMutation.mutate(formManutencao);
             }}
           >

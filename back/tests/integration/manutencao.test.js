@@ -228,36 +228,6 @@ test('API cadastra consulta e atualiza manutencao', async () => {
 
     console.log('Consulta dos itens validada.');
 
-    // Atualizar manutencao
-    const atualizacao = await app.inject({
-      method: 'PATCH',
-      url: `/api/v1/manutencoes/${manutencao.id}`,
-      headers,
-      payload: {
-        finalizado: true,
-        observacoes: 'Manutencao concluida durante o teste.',
-      },
-    });
-
-    assert.equal(
-      atualizacao.statusCode,
-      200,
-      `Falha na atualizacao: ${atualizacao.body}`,
-    );
-
-    const registroAtualizado = await db.manutencao.findUnique({
-      where: { id: manutencao.id },
-    });
-
-    assert.equal(registroAtualizado.finalizado, true);
-
-    assert.equal(
-      registroAtualizado.observacoes,
-      'Manutencao concluida durante o teste.',
-    );
-
-    console.log('Atualizacao e persistencia validadas.');
-
     // Adicionar outro item
     const novoItem = await app.inject({
       method: 'POST',
@@ -348,6 +318,36 @@ test('API cadastra consulta e atualiza manutencao', async () => {
 
     console.log('Exclusao de item por administrador validada.');
 
+    // Atualizar manutencao
+    const atualizacao = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/manutencoes/${manutencao.id}`,
+      headers,
+      payload: {
+        finalizado: true,
+        observacoes: 'Manutencao concluida durante o teste.',
+      },
+    });
+
+    assert.equal(
+      atualizacao.statusCode,
+      200,
+      `Falha na atualizacao: ${atualizacao.body}`,
+    );
+
+    const registroAtualizado = await db.manutencao.findUnique({
+      where: { id: manutencao.id },
+    });
+
+    assert.equal(registroAtualizado.finalizado, true);
+
+    assert.equal(
+      registroAtualizado.observacoes,
+      'Manutencao concluida durante o teste.',
+    );
+
+    console.log('Atualizacao e persistencia validadas.');
+
     // Usuario comum nao pode excluir manutencao
     const exclusaoNegadaManutencao = await app.inject({
       method: 'DELETE',
@@ -365,12 +365,9 @@ test('API cadastra consulta e atualiza manutencao', async () => {
 
     console.log('Bloqueio de exclusao de manutencao validado.');
 
-    // Excluir item original antes de excluir a manutencao
-    await db.itemManutencao.deleteMany({
-      where: { manutencao_id: manutencao.id },
-    });
 
-    // Administrador pode excluir manutencao
+
+    // Administrador nao pode excluir manutencao finalizada
     const exclusaoManutencao = await app.inject({
       method: 'DELETE',
       url: `/api/v1/manutencoes/${manutencao.id}`,
@@ -379,20 +376,145 @@ test('API cadastra consulta e atualiza manutencao', async () => {
 
     assert.equal(
       exclusaoManutencao.statusCode,
-      200,
-      `Falha ao excluir manutencao: ${exclusaoManutencao.body}`,
+      409,
+      `A exclusao deveria ser bloqueada: ${exclusaoManutencao.body}`,
     );
+
+    const manutencaoPreservada = await db.manutencao.findUnique({
+      where: { id: manutencao.id },
+    });
+
+    assert.ok(
+      manutencaoPreservada,
+      'A manutencao finalizada deve continuar cadastrada.',
+    );
+
+    assert.equal(manutencaoPreservada.finalizado, true);
+
+    console.log('Exclusao de manutencao finalizada bloqueada.');
+
+    // Administrador nao pode editar manutencao finalizada
+    const edicaoBloqueada = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/manutencoes/${manutencao.id}`,
+      headers,
+      payload: {
+        observacoes: 'Alteracao indevida apos finalizacao.',
+      },
+    });
 
     assert.equal(
-      await db.manutencao.findUnique({
-        where: { id: manutencao.id },
-      }),
-      null,
+      edicaoBloqueada.statusCode,
+      409,
+      `A edicao deveria ser bloqueada: ${edicaoBloqueada.body}`,
     );
 
-    criados.manutencao = null;
+    // A reabertura nao pode ocorrer pelo PATCH comum
+    const reaberturaBloqueada = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/manutencoes/${manutencao.id}`,
+      headers,
+      payload: {
+        finalizado: false,
+      },
+    });
 
-    console.log('Exclusao de manutencao por administrador validada.');
+    assert.equal(
+      reaberturaBloqueada.statusCode,
+      409,
+      `A reabertura deveria ser bloqueada: ${reaberturaBloqueada.body}`,
+    );
+
+    // Confirmar que os dados originais foram preservados
+    const manutencaoAposTentativas = await db.manutencao.findUnique({
+      where: { id: manutencao.id },
+    });
+
+    assert.ok(manutencaoAposTentativas);
+
+    assert.equal(manutencaoAposTentativas.finalizado, true);
+
+    assert.equal(
+      manutencaoAposTentativas.observacoes,
+      'Manutencao concluida durante o teste.',
+    );
+
+    console.log('Edicao e reabertura indevidas bloqueadas.');
+
+    // Bloquear inclusao de item em manutencao finalizada
+    const inclusaoBloqueada = await app.inject({
+      method: 'POST',
+      url: `/api/v1/manutencoes/${manutencao.id}/itens`,
+      headers,
+      payload: {
+        descricao: 'Item inserido indevidamente',
+        quantidade: 1,
+        valor_unitario: 100,
+        equipamento_id: criados.equipamento.id,
+      },
+    });
+
+    assert.equal(
+      inclusaoBloqueada.statusCode,
+      409,
+      `A inclusao deveria ser bloqueada: ${inclusaoBloqueada.body}`,
+    );
+
+    // Localizar o item original da manutencao
+    const itemOriginal = await db.itemManutencao.findFirst({
+      where: { manutencao_id: manutencao.id },
+    });
+
+    assert.ok(itemOriginal, 'O item original deve existir.');
+
+    // Bloquear edicao de item em manutencao finalizada
+    const edicaoItemBloqueada = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/manutencoes/${manutencao.id}/itens/${itemOriginal.id}`,
+      headers,
+      payload: {
+        descricao: 'Descricao alterada indevidamente',
+      },
+    });
+
+    assert.equal(
+      edicaoItemBloqueada.statusCode,
+      409,
+      `A edicao do item deveria ser bloqueada: ${edicaoItemBloqueada.body}`,
+    );
+
+    // Bloquear exclusao de item em manutencao finalizada
+    const exclusaoItemBloqueada = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/manutencoes/${manutencao.id}/itens/${itemOriginal.id}`,
+      headers,
+    });
+
+    assert.equal(
+      exclusaoItemBloqueada.statusCode,
+      409,
+      `A exclusao do item deveria ser bloqueada: ${exclusaoItemBloqueada.body}`,
+    );
+
+    // Verificar se o item original foi preservado
+    const itemPreservado = await db.itemManutencao.findUnique({
+      where: { id: itemOriginal.id },
+    });
+
+    assert.ok(itemPreservado);
+
+    assert.equal(
+      itemPreservado.descricao,
+      itemOriginal.descricao,
+    );
+
+    const quantidadeItens = await db.itemManutencao.count({
+      where: { manutencao_id: manutencao.id },
+    });
+
+    assert.equal(quantidadeItens, 1);
+
+    console.log('Itens de manutencao finalizada protegidos.');
 
   } finally {
     if (criados.manutencao) {
