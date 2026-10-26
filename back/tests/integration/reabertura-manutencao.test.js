@@ -399,7 +399,7 @@ test('Validacao de justificativas invalidas', async () => {
   const url = new URL(databaseUrl);
 
   assert.equal(url.hostname, '127.0.0.1');
-  assert.equal(url.port, '5434');
+  assert.equal(url.port, '5435');
 
   assert.equal(
     decodeURIComponent(url.pathname.slice(1)),

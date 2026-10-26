@@ -4,6 +4,22 @@ import assert from 'node:assert/strict';
 
 import { errorHandler } from '../src/middlewares/errorHandler.js';
 
+const NODE_ENV_ORIGINAL = process.env.NODE_ENV;
+
+test.before(() => {
+  process.env.NODE_ENV = 'production';
+});
+
+test.after(() => {
+  if (NODE_ENV_ORIGINAL === undefined) {
+    delete process.env.NODE_ENV;
+  } else {
+    process.env.NODE_ENV = NODE_ENV_ORIGINAL;
+  }
+});
+
+
+
 const criarResposta = () => ({
   statusCode: null,
   body: null,

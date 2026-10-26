@@ -7,11 +7,17 @@ export default function Layout({ title, actions, children }) {
   const [menuMobileAberto, setMenuMobileAberto] = useState(false);
 
   return (
-    <div
-      className={`app-shell ${
-        menuRecolhido ? 'sidebar-collapsed' : ''
-      }`}
-    >
+    <>
+      <a className="skip-link" href="#conteudo-principal">
+        Pular para o conteúdo principal
+      </a>
+
+      <div
+        className={`app-shell ${
+          menuRecolhido ? 'sidebar-collapsed' : ''
+        }`}
+      >
+
       <Sidebar
         recolhido={menuRecolhido}
         mobileAberto={menuMobileAberto}
@@ -61,8 +67,15 @@ export default function Layout({ title, actions, children }) {
           <div>{actions}</div>
         </header>
 
-        <main className="content">{children}</main>
+        <main
+          id="conteudo-principal"
+          className="content"
+          tabIndex={-1}
+        >
+          {children}
+        </main>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

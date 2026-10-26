@@ -143,6 +143,24 @@ export const getDashboardSummary = async (filtros = {}) => {
 
   /*
    * ---------------------------------------------------------
+   * FILTRO DE MANUTENÇÕES COM EQUIPAMENTOS RELACIONADOS
+   * ---------------------------------------------------------
+   */
+
+  const whereManutencaoFiltrada = {
+    ...whereManutencao,
+  };
+
+  if (categoriaId || predioId) {
+    whereManutencaoFiltrada.itens = {
+      some: {
+        equipamento: whereEquipamento,
+      },
+    };
+  }
+
+  /*
+   * ---------------------------------------------------------
    * FILTRO DOS ITENS
    * ---------------------------------------------------------
    *
@@ -247,7 +265,7 @@ export const getDashboardSummary = async (filtros = {}) => {
      * Manutenções considerando período e tipo.
      */
     db.manutencao.findMany({
-      where: whereManutencao,
+      where: whereManutencaoFiltrada,
 
       select: {
         id: true,
@@ -297,7 +315,7 @@ export const getDashboardSummary = async (filtros = {}) => {
      */
     db.manutencao.findMany({
       where: {
-        ...whereManutencao,
+        ...whereManutencaoFiltrada,
         finalizado: false,
       },
 

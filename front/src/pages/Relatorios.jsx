@@ -234,7 +234,36 @@ export default function Relatorios() {
             margin: 12mm;
           }
 
-          body {
+          html,
+          body,
+          #root {
+            width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+            background: #fff !important;
+          }
+
+          .sidebar,
+          .topbar,
+          .no-print,
+          [vw],
+          [vw-access-button],
+          .vw-plugin-wrapper,
+          .vw-access-button {
+            display: none !important;
+          }
+
+          .main,
+          .content,
+          .app-shell {
+            display: block !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: 0 !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
             background: #fff !important;
           }
 

@@ -147,3 +147,18 @@ dados_manutencao.json
 *:Zone.Identifier
 *_Zone.Identifier
 docker-compose.backup.yml
+
+# Backups locais e copias temporarias
+/backups/
+*.bak
+*.bak-*
+*.bak_*
+docker-compose.yml.bak-*
+
+# Backups e arquivos temporarios do PostgreSQL
+*.dump
+*.sql.gz
+*.tar
+
+# Arquivos temporarios de recuperacao e diagnostico
+*.tmp
