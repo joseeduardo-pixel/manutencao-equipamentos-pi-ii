@@ -248,10 +248,16 @@ export default function Relatorios() {
           .topbar,
           .no-print,
           [vw],
+          [vw] *,
           [vw-access-button],
           .vw-plugin-wrapper,
-          .vw-access-button {
+          .vw-plugin-wrapper *,
+          .vw-access-button,
+          div[vw],
+          div[vw] *,
+          iframe[src*="vlibras.gov.br"] {
             display: none !important;
+            visibility: hidden !important;
           }
 
           .main,
