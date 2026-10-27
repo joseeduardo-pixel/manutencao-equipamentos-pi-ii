@@ -255,7 +255,11 @@ export default function Relatorios() {
           .vw-access-button,
           div[vw],
           div[vw] *,
-          iframe[src*="vlibras.gov.br"] {
+          iframe[src*="vlibras.gov.br"],
+          iframe[src*="vlibras"],
+          [class*="vw-"],
+          [id*="vlibras"],
+          [class*="vlibras"] {
             display: none !important;
             visibility: hidden !important;
           }
@@ -306,7 +310,46 @@ export default function Relatorios() {
           }
 
           .relatorio-grupo {
+            break-inside: auto !important;
+            page-break-inside: auto !important;
+          }
+
+          /* Impressao compacta do relatorio de manutencoes. */
+          .relatorio-manutencao {
+            padding: 4px !important;
+            margin-bottom: 6px !important;
+            border-radius: 0 !important;
+            break-inside: auto !important;
+            page-break-inside: auto !important;
+          }
+
+          .relatorio-manutencao .relatorio-tabela th,
+          .relatorio-manutencao .relatorio-tabela td {
+            padding: 2px !important;
+            font-size: 8pt !important;
+            line-height: 1.1 !important;
+          }
+
+          .relatorio-grupo h3 {
+            break-after: avoid-page;
+            page-break-after: avoid;
+          }
+
+          .relatorio-tabela {
+            page-break-inside: auto !important;
+          }
+
+          .relatorio-tabela thead {
+            display: table-header-group;
+          }
+
+          .relatorio-tabela tfoot {
+            display: table-row-group;
+          }
+
+          .relatorio-tabela tr {
             break-inside: avoid;
+            page-break-inside: avoid;
           }
 
           .table-responsive {
@@ -788,7 +831,7 @@ export default function Relatorios() {
                   ) : (
                     dados.manutencoes.map((manutencao) => (
                       <div
-                        className="relatorio-grupo border rounded p-3 mb-3"
+                        className="relatorio-grupo relatorio-manutencao border rounded p-3 mb-3"
                         key={manutencao.id}
                       >
                         <div className="d-flex justify-content-between flex-wrap gap-2 mb-2">
