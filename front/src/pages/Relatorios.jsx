@@ -352,6 +352,88 @@ export default function Relatorios() {
             page-break-inside: avoid;
           }
 
+          /* Otimização exclusiva do relatório de serviços. */
+          .relatorio-servicos {
+            width: 100% !important;
+            table-layout: fixed !important;
+            font-size: 7pt !important;
+          }
+
+          .relatorio-servicos th,
+          .relatorio-servicos td {
+            padding: 2px !important;
+            font-size: 7pt !important;
+            line-height: 1.05 !important;
+            vertical-align: top !important;
+            overflow-wrap: anywhere;
+          }
+
+          .relatorio-servicos th {
+            white-space: normal !important;
+            overflow-wrap: normal !important;
+            word-break: normal !important;
+            hyphens: none;
+            text-align: center !important;
+            vertical-align: middle !important;
+            line-height: 1.1 !important;
+            font-size: 6.5pt !important;
+          }
+
+          .relatorio-servicos th:nth-child(1),
+          .relatorio-servicos td:nth-child(1) {
+            width: 6%;
+          }
+
+          .relatorio-servicos th:nth-child(2),
+          .relatorio-servicos td:nth-child(2) {
+            width: 7%;
+          }
+
+          .relatorio-servicos th:nth-child(3),
+          .relatorio-servicos td:nth-child(3) {
+            width: 12%;
+          }
+
+          .relatorio-servicos th:nth-child(4),
+          .relatorio-servicos td:nth-child(4) {
+            width: 6%;
+          }
+
+          .relatorio-servicos th:nth-child(5),
+          .relatorio-servicos td:nth-child(5) {
+            width: 6%;
+          }
+
+          .relatorio-servicos th:nth-child(6),
+          .relatorio-servicos td:nth-child(6) {
+            width: 10%;
+          }
+
+          .relatorio-servicos th:nth-child(7),
+          .relatorio-servicos td:nth-child(7) {
+            width: 14%;
+          }
+
+          .relatorio-servicos th:nth-child(8),
+          .relatorio-servicos td:nth-child(8) {
+            width: 18%;
+          }
+
+          .relatorio-servicos th:nth-child(9),
+          .relatorio-servicos td:nth-child(9) {
+            width: 6%;
+          }
+
+          .relatorio-servicos th:nth-child(10),
+          .relatorio-servicos td:nth-child(10) {
+            width: 8%;
+          }
+
+          .relatorio-servicos th:nth-child(11),
+          .relatorio-servicos td:nth-child(11) {
+            width: 7%;
+          }
+
           .table-responsive {
             overflow: visible !important;
           }
@@ -764,7 +846,7 @@ export default function Relatorios() {
                     />
                   ) : (
                     <div className="table-responsive">
-                      <table className="table table-sm table-striped table-bordered relatorio-tabela">
+                      <table className="table table-sm table-striped table-bordered relatorio-tabela relatorio-servicos">
                         <thead className="table-light">
                           <tr>
                             <th>Data</th>
