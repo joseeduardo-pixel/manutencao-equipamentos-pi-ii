@@ -41,7 +41,7 @@ fastify.addContentTypeParser(
 fastify.setErrorHandler(errorHandler);
 
 await fastify.register(cors, {
-  origin: 'http://localhost:5173',
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
 });
