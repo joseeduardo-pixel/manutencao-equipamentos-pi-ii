@@ -407,3 +407,10 @@ html.a11y-leitor #root :is(button, a, label, th, td, li, p, h1, h2, h3, h4, inpu
   flex-direction: row;
   min-height: 44px;
 }
+
+/* Oculta o menu de acessibilidade na impressão e no PDF */
+@media print {
+  .a11y-widget {
+    display: none !important;
+  }
+}
