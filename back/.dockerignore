@@ -1,3 +1,25 @@
 node_modules
 npm-debug.log
 .git
+# Credenciais e configuracoes locais
+.env
+.env.*
+!.env.example
+
+# Backups e arquivos temporarios
+*.backup
+*.backup-*
+*.bak
+*.bak-*
+*.dump
+*.sql
+*.sql.gz
+*.tar
+backups/
+
+# Arquivos locais de desenvolvimento
+coverage/
+.nyc_output/
+.vscode/
+.idea/
+.DS_Store

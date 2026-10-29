@@ -1,0 +1,23 @@
+# Dependencias e compilacoes locais
+node_modules
+dist
+
+# Credenciais e configuracoes locais
+.env
+.env.*
+!.env.example
+
+# Backups e arquivos temporarios
+*.backup
+*.backup-*
+*.bak
+*.bak-*
+*.log
+backups/
+
+# Arquivos de desenvolvimento
+.git
+.vscode
+.idea
+.DS_Store
+coverage
