@@ -1,0 +1,409 @@
+/* =========================================================
+   Menu de acessibilidade (componente AcessibilidadeMenu.jsx)
+   O botão fica logo acima do botão do VLibras, que é fixo em
+   right: 10px; top: calc(50vh - 20px); 40x40px.
+   ========================================================= */
+
+.a11y-widget {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.a11y-botao {
+  position: fixed;
+  right: 10px;
+  top: calc(50vh - 70px); /* 40px do botão + 10px de espaço acima do VLibras */
+  z-index: 2147483638;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  background: #1351b4;
+  color: #fff;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: filter 0.15s ease;
+}
+
+.a11y-botao:hover {
+  filter: brightness(1.1);
+}
+
+.a11y-botao:focus-visible {
+  outline: 2px solid #fff;
+  box-shadow: 0 0 10px 4px #1351b4;
+}
+
+/* Bolinha indicando que há alguma opção ligada */
+.a11y-botao-ativo::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #ffcd07;
+  border: 2px solid #fff;
+}
+
+.a11y-painel {
+  position: fixed;
+  right: 60px;
+  top: 50vh;
+  transform: translateY(-50%);
+  z-index: 2147483640;
+  width: 300px;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  background: #fff;
+  color: #1b2430;
+  border: 1px solid #c1c8cb;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(27, 36, 48, 0.25);
+  padding: 14px;
+}
+
+.a11y-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.a11y-cabecalho h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.a11y-cabecalho h2 i {
+  color: #1351b4;
+  font-size: 20px;
+}
+
+.a11y-fechar {
+  border: none;
+  background: transparent;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  color: #5b6672;
+  cursor: pointer;
+}
+
+.a11y-fechar:hover {
+  background: #eef1f0;
+}
+
+.a11y-secao {
+  margin-bottom: 12px;
+}
+
+.a11y-rotulo {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5b6672;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.a11y-fonte {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.a11y-fonte button {
+  flex: 1;
+  height: 36px;
+  border: 1px solid #c1c8cb;
+  background: #fff;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.a11y-fonte button:hover:not(:disabled) {
+  border-color: #1351b4;
+  color: #1351b4;
+}
+
+.a11y-fonte button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.a11y-fonte-valor {
+  min-width: 52px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.a11y-grade {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.a11y-opcao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 64px;
+  padding: 8px 6px;
+  border: 1px solid #d9dee0;
+  border-radius: 8px;
+  background: #f7f9f9;
+  color: #1b2430;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+}
+
+.a11y-opcao i {
+  font-size: 20px;
+  color: #1351b4;
+}
+
+.a11y-opcao:hover {
+  border-color: #1351b4;
+}
+
+.a11y-opcao.ativo {
+  background: #1351b4;
+  border-color: #1351b4;
+  color: #fff;
+}
+
+.a11y-opcao.ativo i {
+  color: #fff;
+}
+
+.a11y-redefinir {
+  width: 100%;
+  height: 36px;
+  border: 1px solid #c1c8cb;
+  border-radius: 6px;
+  background: #fff;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.a11y-redefinir:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.a11y-dica {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  color: #5b6672;
+}
+
+.a11y-dica kbd {
+  font-size: 11px;
+  padding: 1px 5px;
+  background: #eef1f0;
+  color: #1b2430;
+  border: 1px solid #c1c8cb;
+  border-radius: 4px;
+}
+
+.a11y-painel button:focus-visible {
+  outline: 3px solid #ffcd07;
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .a11y-painel {
+    right: 8px;
+    left: 8px;
+    width: auto;
+    top: auto;
+    bottom: 8px;
+    transform: none;
+  }
+}
+
+/* =========================================================
+   Efeitos aplicados na página (classes no <html>)
+   ========================================================= */
+
+/* ---- Tamanho do texto: zoom no conteúdo do sistema ---- */
+html.a11y-zoom #root {
+  zoom: var(--a11y-zoom, 1);
+}
+
+/* Corrige alturas de tela cheia quando o conteúdo está com zoom */
+html.a11y-zoom .app-shell,
+html.a11y-zoom .login-screen {
+  min-height: calc(100vh / var(--a11y-zoom, 1));
+}
+
+html.a11y-zoom .sidebar {
+  height: calc(100vh / var(--a11y-zoom, 1));
+}
+
+/* ---- Escala de cinza ---- */
+html.a11y-cinza {
+  filter: grayscale(1);
+}
+
+/* ---- Alto contraste (fundo preto, texto branco, links amarelos) ---- */
+html.a11y-contraste body,
+html.a11y-contraste #root,
+html.a11y-contraste #root *,
+html.a11y-contraste .modal,
+html.a11y-contraste .modal *,
+html.a11y-contraste .toast-container * {
+  background-color: #000 !important;
+  background-image: none !important;
+  color: #fff !important;
+  border-color: #fff !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+html.a11y-contraste #root a,
+html.a11y-contraste #root a *,
+html.a11y-contraste #root button,
+html.a11y-contraste #root button *,
+html.a11y-contraste #root .btn,
+html.a11y-contraste #root .btn *,
+html.a11y-contraste .modal button,
+html.a11y-contraste .modal button * {
+  color: #ffff00 !important;
+}
+
+html.a11y-contraste #root button,
+html.a11y-contraste #root .btn,
+html.a11y-contraste .modal button {
+  border: 1px solid #ffff00 !important;
+}
+
+html.a11y-contraste #root input::placeholder,
+html.a11y-contraste #root textarea::placeholder {
+  color: #bdbdbd !important;
+}
+
+/* Textos dos gráficos (Recharts usa SVG) */
+html.a11y-contraste #root svg text {
+  fill: #fff !important;
+}
+
+html.a11y-contraste #root .recharts-cartesian-grid line {
+  stroke: #555 !important;
+}
+
+/* O próprio painel também fica em alto contraste */
+html.a11y-contraste .a11y-painel,
+html.a11y-contraste .a11y-painel * {
+  background-color: #000 !important;
+  color: #fff !important;
+  border-color: #fff !important;
+}
+
+html.a11y-contraste .a11y-painel i,
+html.a11y-contraste .a11y-opcao.ativo,
+html.a11y-contraste .a11y-opcao.ativo * {
+  color: #ffff00 !important;
+}
+
+html.a11y-contraste .a11y-opcao.ativo {
+  border: 2px solid #ffff00 !important;
+}
+
+html.a11y-contraste .a11y-botao {
+  background: #000 !important;
+  color: #ffff00 !important;
+  border: 2px solid #ffff00 !important;
+}
+
+/* ---- Destacar links ---- */
+html.a11y-links #root a {
+  text-decoration: underline !important;
+  text-underline-offset: 3px;
+  font-weight: 600 !important;
+}
+
+html.a11y-links #root a:not(.btn) {
+  background-color: #fff3a3 !important;
+  color: #0b2e6b !important;
+}
+
+html.a11y-links.a11y-contraste #root a:not(.btn) {
+  background-color: #000 !important;
+  color: #ffff00 !important;
+}
+
+/* ---- Espaçar texto (critério WCAG 1.4.12) ---- */
+html.a11y-espacamento #root * {
+  letter-spacing: 0.12em !important;
+  word-spacing: 0.16em !important;
+  line-height: 1.8 !important;
+}
+
+html.a11y-espacamento #root p {
+  margin-bottom: 2em !important;
+}
+
+/* ---- Fonte legível ---- */
+html.a11y-fonte-legivel #root,
+html.a11y-fonte-legivel #root *:not(i):not(.bi) {
+  font-family: Verdana, Tahoma, Arial, sans-serif !important;
+}
+
+/* ---- Cursor grande ---- */
+html.a11y-cursor,
+html.a11y-cursor * {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24'%3E%3Cpath d='M4 2l16 10.5-7 1.2 4.3 7.6-2.6 1.4-4.3-7.6L5 20z' fill='%23000' stroke='%23fff' stroke-width='1.3' stroke-linejoin='round'/%3E%3C/svg%3E") 8 4, auto !important;
+}
+
+/* ---- Realçar foco do teclado ---- */
+html.a11y-foco *:focus,
+html.a11y-foco *:focus-visible {
+  outline: 4px solid #ffcd07 !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 7px #1351b4 !important;
+}
+
+/* ---- Pausar animações ---- */
+html.a11y-sem-animacao *,
+html.a11y-sem-animacao *::before,
+html.a11y-sem-animacao *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ---- Ler ao clicar: mostra o que será lido ---- */
+html.a11y-leitor #root :is(button, a, label, th, td, li, p, h1, h2, h3, h4, input, select, textarea):hover {
+  outline: 2px dashed #1351b4;
+  outline-offset: 1px;
+}
+
+/* Se sobrar uma opção sozinha na última linha, ela ocupa a largura toda */
+.a11y-opcao:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  min-height: 44px;
+}

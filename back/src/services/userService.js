@@ -303,7 +303,6 @@ export const generateAndSendOtp = async (userId, reason, options = {}) => {
     name: user.name,
   });
 
-  console.log(`[OTP GENERATED] User: ${user.username} | Code: ${otp}`);
 
   if (reason === 'PASSWORD_RECOVERY' || reason === 'EMAIL_CHANGE') {
     try {
