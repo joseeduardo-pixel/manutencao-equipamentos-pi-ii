@@ -14,6 +14,7 @@ export default function Login() {
   const [needsSetup, setNeedsSetup] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [setupSecret, setSetupSecret] = useState('');
 
   // Formulário Login
   const [username, setUsername] = useState('');
@@ -125,7 +126,13 @@ export default function Login() {
 
     setSubmitting(true);
     try {
-      const res = await api.post('/auth/setup', rootForm);
+      const res = await api.post('/auth/setup', rootForm, {
+        headers: {
+          'x-setup-secret': setupSecret,
+        },
+        skipRetry: true,
+      });
+
       await login({
         username: rootForm.username,
         password: rootForm.password,
@@ -203,6 +210,20 @@ export default function Login() {
 
         {needsSetup ? (
           <form onSubmit={handleSubmitSetup}>
+            <div className='field'>
+              <label htmlFor='setup-secret'>
+                Chave de Configuração Inicial
+              </label>
+              <input
+                id='setup-secret'
+                type='password'
+                autoComplete='off'
+                value={setupSecret}
+                onChange={(e) => setSetupSecret(e.target.value)}
+                minLength={32}
+                required
+              />
+            </div>
             <div className='field'>
               <label htmlFor='setup-name'>Nome Completo</label>
               <input

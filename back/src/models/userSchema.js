@@ -46,15 +46,24 @@ const userBaseFields = Type.Object({
 // --- Schemas de Criação Separados para o Swagger ---
 
 export const setupSchema = Type.Intersect(
-  [userBaseFields, passwordConfirmationFields],
+  [
+    Type.Omit(userBaseFields, ['password']),
+    Type.Object({
+      password: Type.String({
+        minLength: 12,
+        maxLength: 128,
+      }),
+    }),
+    passwordConfirmationFields,
+  ],
   {
     examples: [
       {
         name: 'Usuário Root',
         username: 'root',
-        email: 'root@root.com',
-        password: 'root',
-        passwordConfirm: 'root',
+        email: 'administrador@example.com',
+        password: 'ExemploSeguro2026!',
+        passwordConfirm: 'ExemploSeguro2026!',
       },
     ],
   },

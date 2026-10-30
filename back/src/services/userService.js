@@ -60,24 +60,32 @@ export const findUserByAnyIdentifierWithoutError = async (
  * @param {Object} userData - Dados do usuário (username, email, password, etc)
  */
 export const createFirstRootUser = async (userData) => {
-  const systemHasOwner = await hasAnyRoot();
+  return db.$transaction(async (tx) => {
+    await tx.$queryRaw`
+      SELECT pg_advisory_xact_lock(2026, 1102)::text AS bloqueio
+    `;
 
-  if (systemHasOwner) {
-    throw new AppError(
-      'O sistema já foi inicializado. Use o fluxo padrão de cadastro.',
-      400,
-    );
-  }
+    const existingRoot = await tx.user.count({
+      where: { role: 'root' },
+    });
 
-  const firstRoot = await db.user.create({
-    data: {
-      ...userData,
-      role: 'root',
-      passwordChangedAt: null,
-    },
+    if (existingRoot > 0) {
+      throw new AppError(
+        'O sistema já foi inicializado. Use o fluxo padrão de cadastro.',
+        400,
+      );
+    }
+
+    return tx.user.create({
+      data: {
+        ...userData,
+        role: 'root',
+        status: 'pending',
+        isVerified: false,
+        passwordChangedAt: null,
+      },
+    });
   });
-
-  return firstRoot;
 };
 
 export const createUserByAdmin = async (

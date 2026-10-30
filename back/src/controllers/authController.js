@@ -9,6 +9,32 @@ import {
   clearAccessTokenCookie,
 } from '../utils/controllers/cookieUtils.js';
 import AppError from '../utils/appError.js';
+import { createHash, timingSafeEqual } from 'node:crypto';
+
+const validateSetupSecret = (request) => {
+  const configuredSecret = process.env.SETUP_SECRET;
+  const providedSecret = request.headers['x-setup-secret'];
+
+  if (
+    typeof configuredSecret !== 'string' ||
+    configuredSecret.length < 32 ||
+    typeof providedSecret !== 'string'
+  ) {
+    throw new AppError('Configuracao inicial nao autorizada.', 403);
+  }
+
+  const expected = createHash('sha256')
+    .update(configuredSecret)
+    .digest();
+
+  const received = createHash('sha256')
+    .update(providedSecret)
+    .digest();
+
+  if (!timingSafeEqual(expected, received)) {
+    throw new AppError('Configuracao inicial nao autorizada.', 403);
+  }
+};
 
 export const checkSystemSetup = async (request, reply) => {
   const isInitialized = await userService.hasAnyRoot();
@@ -26,6 +52,8 @@ export const checkSystemSetup = async (request, reply) => {
 };
 
 export const setupFirstRoot = async (request, reply) => {
+  validateSetupSecret(request);
+
   const isInitialized = await userService.hasAnyRoot();
 
   if (isInitialized) {
