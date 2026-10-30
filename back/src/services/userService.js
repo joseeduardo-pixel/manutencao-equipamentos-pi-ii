@@ -162,6 +162,7 @@ export const listUsers = async (options = {}) => {
   };
 };
 
+
 export const updateUser = async (
   identifier,
   data,
@@ -170,11 +171,29 @@ export const updateUser = async (
 ) => {
   const currentUser = await findUserOrThrow(identifier);
 
-  if (currentUser.id !== performerId) {
+  const isSelfUpdate = currentUser.id === performerId;
+
+  if (
+    isSelfUpdate &&
+    data.role !== undefined &&
+    data.role !== currentUser.role
+  ) {
+    throw new AppError(
+      'Não é permitido alterar o próprio nível de acesso.',
+      403,
+    );
+  }
+
+  if (!isSelfUpdate) {
     validateRoleHierarchy(performerRole, currentUser.role);
+
+    if (data.role !== undefined) {
+      validateRoleHierarchy(performerRole, data.role);
+    }
   }
 
   const changes = {};
+
   Object.keys(data).forEach((key) => {
     if (data[key] !== undefined && data[key] !== currentUser[key]) {
       changes[key] = data[key];
@@ -195,6 +214,7 @@ export const updateUser = async (
   }
 
   const where = parseUserIdentifier(identifier);
+
   const updatedUser = await db.user.update({
     where,
     data: changes,
