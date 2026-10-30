@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import { fetchMe } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import Layout from '../components/Layout';
@@ -11,7 +12,19 @@ export default function Perfil() {
   const toast = useToast();
   const navigate = useNavigate();
 
-  const [abaAtiva, setAbaAtiva] = useState('dados');
+  const contaPendente =
+    user?.status !== 'active' || user?.isVerified !== true;
+
+  const [abaAtiva, setAbaAtiva] = useState(
+    contaPendente ? 'verificacao' : 'dados',
+  );
+
+  useEffect(() => {
+    if (contaPendente) {
+      setAbaAtiva('verificacao');
+      setModoTrocaEmail(false);
+    }
+  }, [contaPendente]);
 
   // Aba 1: Dados Pessoais
   const [name, setName] = useState(user?.name ?? '');
@@ -171,11 +184,14 @@ export default function Perfil() {
         const res = await api.patch('/me/activation', {
           token: codigoOtp.trim(),
         });
-        const usuarioAtualizado = {
-          ...user,
-          isVerified: true,
-          status: 'active',
-        };
+        const usuarioAtualizado = await fetchMe();
+
+        if (
+          usuarioAtualizado?.status !== 'active' ||
+          usuarioAtualizado?.isVerified !== true
+        ) {
+          throw new Error('A ativação ainda não foi confirmada pelo servidor.');
+        }
         setUser(usuarioAtualizado);
         localStorage.setItem('@App:user', JSON.stringify(usuarioAtualizado));
         toast.success(res?.message || 'Conta verificada com sucesso!');
@@ -276,6 +292,8 @@ export default function Perfil() {
               borderBottom: '1px solid var(--border)',
             }}
           >
+            {!contaPendente && (
+              <>
             <button
               type='button'
               onClick={() => setAbaAtiva('dados')}
@@ -329,6 +347,8 @@ export default function Perfil() {
             >
               Segurança
             </button>
+              </>
+            )}
 
             <button
               type='button'
@@ -358,6 +378,7 @@ export default function Perfil() {
               Verificação & E-mail
             </button>
 
+            {!contaPendente && (
             <button
               type='button'
               onClick={() => setAbaAtiva('desativacao')}
@@ -385,6 +406,7 @@ export default function Perfil() {
             >
               Desativar Conta
             </button>
+            )}
           </div>
 
           <div className='panel-body' style={{ padding: '24px' }}>
@@ -555,6 +577,7 @@ export default function Perfil() {
                     <strong style={{ fontSize: 14 }}>{user?.email}</strong>
                   </div>
 
+                  {!contaPendente && (
                   <button
                     type='button'
                     className='btn btn-sm'
@@ -566,6 +589,7 @@ export default function Perfil() {
                   >
                     {modoTrocaEmail ? 'Cancelar' : 'Alterar e-mail'}
                   </button>
+                  )}
                 </div>
 
                 {modoTrocaEmail && (

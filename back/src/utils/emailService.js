@@ -57,6 +57,10 @@ const sendWithBrevo = async (options) => {
  * @param {Object} options - { to, subject, html }
  */
 export const sendEmail = async (options) => {
+  if (process.env.NODE_ENV === 'test') {
+    logger.info('TESTE: envio de e-mail simulado.');
+    return true;
+  }
   try {
     if (process.env.BREVO_API_KEY?.trim()) {
       await sendWithBrevo(options);

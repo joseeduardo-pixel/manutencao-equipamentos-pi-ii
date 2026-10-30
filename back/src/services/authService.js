@@ -100,8 +100,23 @@ export const refreshSession = async (refreshTokenInput) => {
 
   verifyRefreshTokenSignature(refreshTokenInput);
 
-  const newAccessToken = signAccessToken(session.userId);
+  if (!session.user) {
+    throw new AppError(
+      'Usuário não encontrado. Faça login novamente.',
+      401,
+    );
+  }
 
+  const allowedStatuses = ['active', 'pending'];
+
+  if (!allowedStatuses.includes(session.user.status)) {
+    throw new AppError(
+      'Sua conta está desativada ou banida. Contate o suporte.',
+      403,
+    );
+  }
+
+  const newAccessToken = signAccessToken(session.userId);
   return { accessToken: newAccessToken, user: session.user };
 };
 

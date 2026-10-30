@@ -43,6 +43,7 @@ export const protect = async (request, reply) => {
   }
 
   const allowedStatuses = ['active', 'pending'];
+
   if (!allowedStatuses.includes(currentUser.status)) {
     throw new AppError(
       'Sua conta foi desativada ou banida. Por favor, contate o suporte.',
@@ -50,6 +51,30 @@ export const protect = async (request, reply) => {
     );
   }
 
+  const contaPendente =
+    currentUser.status !== 'active' || currentUser.isVerified !== true;
+
+  if (contaPendente) {
+    const caminho = request.url.split('?')[0];
+    const metodo = request.method;
+
+    const rotasPermitidas = [
+      { method: 'GET', path: '/api/v1/me' },
+      { method: 'POST', path: '/api/v1/me/activation' },
+      { method: 'PATCH', path: '/api/v1/me/activation' },
+    ];
+
+    const acessoPermitido = rotasPermitidas.some(
+      (rota) => rota.method === metodo && rota.path === caminho,
+    );
+
+    if (!acessoPermitido) {
+      throw new AppError(
+        'Confirme seu e-mail para acessar esta funcionalidade.',
+        403,
+      );
+    }
+  }
   if (currentUser.passwordChangedAt) {
     const changedTimestamp = parseInt(
       currentUser.passwordChangedAt.getTime() / 1000,
