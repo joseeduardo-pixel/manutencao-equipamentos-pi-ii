@@ -1,8 +1,8 @@
 #!/bin/sh
-# entrypoint.sh
+set -eu
 
-echo "Executando migrações do banco de dados..."
+echo "Executando migracoes do banco de dados..."
 npx prisma migrate deploy
 
-echo "Iniciando a aplicação..."
-npm run start
+echo "Iniciando a aplicacao..."
+exec npm run start
