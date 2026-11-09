@@ -45,6 +45,10 @@ export default function ManutencaoDetalhes() {
   const [modalRemoverItemAberto, setModalRemoverItemAberto] = useState(false);
   const [itemAlvoRemocao, setItemAlvoRemocao] = useState(null);
 
+  // Controle da paginação dos itens da manutenção
+  const [paginaItens, setPaginaItens] = useState(1);
+  const [itensPorPagina, setItensPorPagina] = useState(20);
+
   // 1. Busca dados da ordem de manutenção (Master)
   const {
     data: respostaManutencao,
@@ -61,11 +65,48 @@ export default function ManutencaoDetalhes() {
   // O api client já extrai res.data, logo respostaManutencao é o corpo retornado pelo resfc
   const manutencao = respostaManutencao?.data ?? respostaManutencao;
 
-  // 2. Busca itens da manutenção (Detail)
+  // 2. Busca todos os itens da manutenção (Detail)
   const { data: respostaItens, isLoading: loadingItens } = useQuery({
     queryKey: ['manutencao-itens', id],
     queryFn: async () => {
-      return await api.get(`/manutencoes/${id}/itens?limit=100`);
+      const todosItens = [];
+      let pagina = 1;
+
+      while (true) {
+        const res = await api.get(
+          `/manutencoes/${id}/itens?page=${pagina}&limit=100`
+        );
+
+        const payload = res?.data !== undefined ? res.data : res;
+
+        const itensPagina = Array.isArray(payload?.items)
+          ? payload.items
+          : Array.isArray(payload)
+            ? payload
+            : [];
+
+        todosItens.push(...itensPagina);
+
+        const meta =
+          res?.meta ??
+          res?.pagination ??
+          payload?.meta ??
+          payload?.pagination;
+
+        if (meta) {
+          if (!meta.hasNextPage) break;
+        } else if (itensPagina.length < 100) {
+          break;
+        }
+
+        pagina += 1;
+
+        if (pagina > 1000) {
+          throw new Error('Limite de páginas excedido ao carregar itens.');
+        }
+      }
+
+      return todosItens;
     },
     enabled: Boolean(id),
   });
@@ -310,6 +351,26 @@ export default function ManutencaoDetalhes() {
     (acc, it) =>
       acc + Number(it.quantidade || 0) * Number(it.valor_unitario || 0),
     0,
+  );
+
+  // Paginação visual: mantém todos os itens para a totalização.
+  const totalPaginasItens = Math.max(
+    1,
+    Math.ceil(itens.length / itensPorPagina),
+  );
+
+  const paginaAtualItens = Math.min(paginaItens, totalPaginasItens);
+
+  const inicioItens = (paginaAtualItens - 1) * itensPorPagina;
+
+  const itensPaginados = itens.slice(
+    inicioItens,
+    inicioItens + itensPorPagina,
+  );
+
+  const fimItens = Math.min(
+    inicioItens + itensPorPagina,
+    itens.length,
   );
 
   // Estados de Carregamento e Erro
@@ -567,7 +628,7 @@ export default function ManutencaoDetalhes() {
               </tr>
             </thead>
             <tbody>
-              {itens.map((it) => {
+              {itensPaginados.map((it) => {
                 const eq =
                   it.equipamento ??
                   equipamentos.find((e) => e.id === it.equipamento_id);
@@ -629,11 +690,103 @@ export default function ManutencaoDetalhes() {
                     </td>
                   </tr>
                 );
+
               })}
             </tbody>
           </table>
         )}
+
+        {!loadingItens && itens.length > 0 && (
+          <div
+            className='pagination'
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 12,
+              marginTop: 16,
+            }}
+          >
+            <div>
+              Mostrando {inicioItens + 1}–{fimItens} de {itens.length} itens
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <label htmlFor='itens-por-pagina'>
+                Itens por página:
+              </label>
+
+              <select
+                id='itens-por-pagina'
+                className='form-select'
+                value={itensPorPagina}
+                onChange={(e) => {
+                  setItensPorPagina(Number(e.target.value));
+                  setPaginaItens(1);
+                }}
+                style={{ width: 'auto' }}
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                flexWrap: 'wrap',
+              }}
+            >
+              <button
+                type='button'
+                className='btn btn-sm'
+                disabled={paginaAtualItens <= 1}
+                onClick={() => setPaginaItens(1)}
+              >
+                « Primeira
+              </button>
+
+              <button
+                type='button'
+                className='btn btn-sm'
+                disabled={paginaAtualItens <= 1}
+                onClick={() => setPaginaItens(paginaAtualItens - 1)}
+              >
+                ← Anterior
+              </button>
+
+              <span>
+                Página {paginaAtualItens} de {totalPaginasItens}
+              </span>
+
+              <button
+                type='button'
+                className='btn btn-sm'
+                disabled={paginaAtualItens >= totalPaginasItens}
+                onClick={() => setPaginaItens(paginaAtualItens + 1)}
+              >
+                Próxima →
+              </button>
+
+              <button
+                type='button'
+                className='btn btn-sm'
+                disabled={paginaAtualItens >= totalPaginasItens}
+                onClick={() => setPaginaItens(totalPaginasItens)}
+              >
+                Última »
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Modal: Reabertura administrativa */}
 
       {/* Modal: Reabertura administrativa */}
       {modalReaberturaAberto && (
